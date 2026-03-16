@@ -4,8 +4,6 @@
 [![React Version](https://img.shields.io/badge/react-%5E18.2.0-blue)](https://reactjs.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-Descrição breve do seu projeto React. Explique o que ele faz, qual problema resolve e quais funcionalidades principais oferece.
-
 ## 📋 Pré-requisitos
 
 Antes de começar, você precisa ter instalado em sua máquina:
@@ -39,7 +37,7 @@ Recomendamos o uso do **[Visual Studio Code](https://code.visualstudio.com/)** c
 
 ```bash
 # Clone o repositório
-git clone https://github.com/seu-usuario/nome-do-repositorio.git
+git clone https://github.com/univesp-projeto-integrador-pi/sys-rh-frontend
 ```
 
 ### 2. Instalar as dependências
