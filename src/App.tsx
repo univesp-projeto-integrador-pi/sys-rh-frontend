@@ -1,62 +1,44 @@
 import { useState } from 'react'
+import { FilterBar } from "./components/FilterBar"
 import { JobCard } from "./components/JobCard"
 
+// 1. Nossos dados de teste (Mock)
+const allJobs = [
+  { id: 1, title: "Assistente", role: "Assistente de Almoxarifado", company: "MASP", location: "São Paulo - SP", deadline: "09/05/2026", tag: "SERVIÇOS ESPECIALIZADOS", contractType: "CLT" },
+  { id: 2, title: "Analista", role: "Analista de Acervo", company: "Itaú Cultural", location: "São Paulo - SP", deadline: "09/05/2026", tag: "SERVIÇOS ESPECIALIZADOS", contractType: "PJ" },
+  { id: 3, title: "Especialista", role: "Músico - Flauta", company: "Orquestra Sinfônica", location: "Bahia - BA", deadline: "09/05/2026", tag: "ARTISTA", contractType: "Temporário" },
+];
+
 function App() {
+  // 2. Estado para guardar o filtro selecionado
+  const [cargoFiltro, setCargoFiltro] = useState("Todos");
+
+  // 3. Lógica que filtra a lista em tempo real
+  const jobsFiltrados = allJobs.filter(job => 
+    cargoFiltro === "Todos" || job.title === cargoFiltro
+  );
+
   return (
-    <div className="min-h-screen bg-slate-50 font-sans">
-      {/* HEADER */}
+    <div className="min-h-screen bg-slate-100 font-sans">
       <header className="bg-blue-700 text-white p-6 shadow-md">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <h1 className="text-2xl font-bold tracking-tight">Jobs na ONG</h1>
-          <nav>
-            <button className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition font-medium">
-              Acesso Administrativo
-            </button>
-          </nav>
-        </div>
+        <h1 className="max-w-6xl mx-auto text-2xl font-bold">Jobs na ONG</h1>
       </header>
 
       <main className="max-w-6xl mx-auto p-6 mt-8">
-        {/* TÍTULO E SUBTÍTULO */}
-        <div className="text-center mb-10">
-          <h2 className="text-4xl font-extrabold text-slate-800 mb-2">
-            Oportunidades Abertas
-          </h2>
-          <p className="text-slate-600 text-lg">
-            Encontre a vaga ideal e comece sua jornada com a gente.
-          </p>
-        </div>
+        <FilterBar onCargoChange={setCargoFiltro} />
 
-        {/* VITRINE DE VAGAS (GRID) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <JobCard 
-            title="Desenvolvedor Frontend Júnior" 
-            location="Remoto" 
-            type="Híbrido" 
-            category="Estágio" 
-          />
-          <JobCard 
-            title="Assistente Administrativo" 
-            location="São Paulo, SP" 
-            type="Presencial" 
-            category="CLT" 
-          />
-          <JobCard 
-            title="Voluntário de Comunicação" 
-            location="Rio de Janeiro, RJ" 
-            type="Remoto" 
-            category="Voluntariado" 
-          />
-          <JobCard 
-            title="Analista de RH Pleno" 
-            location="Curitiba, PR" 
-            type="Presencial" 
-            category="CLT" 
-          />
+        <div className="flex flex-col gap-4">
+          {jobsFiltrados.map(job => (
+            <JobCard key={job.id} {...job} />
+          ))}
+          
+          {jobsFiltrados.length === 0 && (
+            <p className="text-center text-slate-500 py-10">Nenhuma vaga encontrada para este filtro.</p>
+          )}
         </div>
       </main>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
