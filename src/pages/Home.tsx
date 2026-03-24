@@ -1,12 +1,8 @@
 // src/pages/Home.tsx
+import { allJobs } from "../data/jobs";
 import { useState } from 'react'
 import { FilterBar } from "../components/FilterBar"
 import { JobCard } from "../components/JobCard"
-
-const allJobs = [
-  { id: 1, title: "Assistente", role: "Assistente de Almoxarifado", company: "MASP", location: "São Paulo - SP", deadline: "09/05/2026", tag: "SERVIÇOS ESPECIALIZADOS", contractType: "CLT" },
-  { id: 2, title: "Analista", role: "Analista de Acervo", company: "Itaú Cultural", location: "São Paulo - SP", deadline: "08/04/2026", tag: "SERVIÇOS ESPECIALIZADOS", contractType: "PJ" },
-];
 
 export function Home() {
   const [cargoFiltro, setCargoFiltro] = useState("Todos");
