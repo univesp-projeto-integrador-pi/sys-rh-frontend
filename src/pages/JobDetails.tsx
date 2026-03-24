@@ -67,9 +67,12 @@ export function JobDetails() {
 
         {/* BOTÃO DE CANDIDATURA */}
         <div className="bg-slate-50 p-8 rounded-2xl flex flex-col items-center">
-          <button className="bg-blue-700 hover:bg-blue-800 text-white text-xl font-bold py-4 px-12 rounded-lg transition-all shadow-lg hover:scale-105">
-            CANDIDATAR-SE
-          </button>
+          <Link
+            to="/login"
+              className="bg-blue-700 hover:bg-blue-800 text-white text-xl font-bold py-4 px-12 rounded-lg transition-all shadow-lg hover:scale-105 inline-block"
+            >
+              CANDIDATAR-SE
+            </Link>
           <p className="mt-4 text-slate-500 text-sm">Você será redirecionado para o formulário de inscrição.</p>
         </div>
       </main>
