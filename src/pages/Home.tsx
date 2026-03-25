@@ -16,10 +16,7 @@ export function Home() {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <header className="bg-blue-700 text-white p-6 shadow-md">
-         <h1 className="max-w-6xl mx-auto text-2xl font-bold">Jobs na ONG</h1>
-      </header>
-      <main className="max-w-6xl mx-auto p-6 mt-8">
+      <main className="max-w-6xl mx-auto p-6">
         <FilterBar onCargoChange={setCargoFiltro} onContratoChange={setContratoFiltro} />
         <div className="flex flex-col gap-4">
           {jobsFiltrados.map(job => (

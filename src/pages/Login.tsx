@@ -1,41 +1,58 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export function Login() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const navigate = useNavigate();
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (email === "admin@teste.com" && password === "123456") {
+      localStorage.setItem("user_token", "sessao_ativa_123");
+      // Forçamos um refresh ou redirecionamento para o Header atualizar
+      navigate("/");
+      window.location.reload(); // Força o Header a ler o localStorage novo
+    } else {
+      alert("Credenciais inválidas!");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-100">
-        <h2 className="text-3xl font-bold text-slate-800 mb-2 text-center">Entrar</h2>
-        <p className="text-slate-500 text-center mb-8">Faça login para se candidatar às vagas.</p>
+      <div className="bg-white p-10 rounded-2xl shadow-xl w-full max-w-md border border-slate-100">
+        <h2 className="text-3xl font-bold mb-6 text-center text-slate-800">Entrar</h2>
 
-        <form className="space-y-4">
+        <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">E-mail</label>
+            <label className="block text-sm font-bold text-slate-700 mb-2 uppercase">E-mail</label>
             <input 
               type="email" 
-              placeholder="seu@email.com"
-              className="w-full p-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-600 outline-none transition"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Senha</label>
-            <input 
-              type="password" 
-              placeholder="••••••••"
-              className="w-full p-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-600 outline-none transition"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-600"
+              placeholder="admin@teste.com"
             />
           </div>
           
-          <button className="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 rounded-lg transition-all shadow-md mt-4">
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-2 uppercase">Senha</label>
+            <input 
+              type="password" 
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full p-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-600"
+              placeholder="123456"
+            />
+          </div>
+          
+          <button type="submit" className="w-full bg-blue-700 text-white font-bold py-4 rounded-xl hover:bg-blue-800 transition shadow-lg">
             ENTRAR
           </button>
         </form>
-
-        <div className="mt-8 pt-6 border-t border-slate-100 text-center">
-          <p className="text-slate-600">Ainda não tem conta?</p>
-          <Link to="/cadastro" className="text-blue-700 font-bold hover:underline">
-            Crie sua conta gratuitamente
-          </Link>
-        </div>
       </div>
     </div>
   );
