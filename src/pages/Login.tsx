@@ -49,9 +49,12 @@ export function Login() {
             />
           </div>
           
-          <button type="submit" className="w-full bg-blue-700 text-white font-bold py-4 rounded-xl hover:bg-blue-800 transition shadow-lg">
+          <button 
+            type="submit" 
+            className="w-full bg-teal-500 text-white font-black py-4 rounded-xl shadow-lg transition-all duration-300 cursor-pointer hover:bg-teal-600 hover:-translate-y-1 active:scale-[0.98] uppercase tracking-widest"          >
             ENTRAR
           </button>
+
         </form>
       </div>
     </div>

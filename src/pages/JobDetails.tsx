@@ -23,7 +23,7 @@ export function JobDetails() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 p-6">
+    <div className="p-8">
       <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
         
         {/* CONTEÚDO DA VAGA */}
@@ -31,7 +31,7 @@ export function JobDetails() {
           <div className="flex justify-between items-start mb-8">
             <div>
               <span className="bg-teal-100 text-teal-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                {vaga.category}
+                {vaga.tag}
               </span>
               <h1 className="text-4xl font-black text-slate-900 mt-4 leading-tight">
                 {vaga.role}
