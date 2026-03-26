@@ -1,81 +1,76 @@
-import { Link, useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
+import { allJobs } from '../data/jobs'; // Certifique-se de que o caminho dos dados está correto
 
 export function JobDetails() {
-  const { id } = useParams(); // No futuro, usaremos esse ID para buscar a vaga no banco
+  const { id } = useParams();
+  
+  // 1. Busca a vaga pelo ID da URL
+  const vaga = allJobs.find(j => j.id === Number(id));
+
+  // 2. Verifica se o usuário está logado para decidir o destino do botão
+  const isAuthenticated = !!localStorage.getItem("user_token");
+  const destinoCandidatura = isAuthenticated 
+    ? `/vaga/${id}/candidatar` 
+    : "/login";
+
+  if (!vaga) {
+    return (
+      <div className="p-10 text-center">
+        <h1 className="text-2xl font-bold text-slate-800">Vaga não encontrada.</h1>
+        <Link to="/" className="text-blue-600 underline">Voltar para a lista</Link>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-white font-sans">
-      <header className="bg-blue-700 text-white p-6 shadow-md mb-8">
-         <div className="max-w-6xl mx-auto flex justify-between items-center">
-            <Link to="/" className="text-2xl font-bold tracking-tight">Jobs na ONG</Link>
-         </div>
-      </header>
+    <div className="p-8">
+      <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+        
+        {/* CONTEÚDO DA VAGA */}
+        <div className="p-8 md:p-12">
+          <div className="flex justify-between items-start mb-8">
+            <div>
+              <span className="bg-teal-100 text-teal-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                {vaga.tag}
+              </span>
+              <h1 className="text-4xl font-black text-slate-900 mt-4 leading-tight">
+                {vaga.role}
+              </h1>
+              <p className="text-xl text-slate-500 font-medium">{vaga.company}</p>
+            </div>
+          </div>
 
-      <main className="max-w-5xl mx-auto p-6">
-        {/* BOTÃO VOLTAR */}
-        <Link to="/" className="text-teal-600 font-medium hover:underline mb-8 inline-block">
-          ← Voltar para a lista de vagas
-        </Link>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 pb-10 border-b border-slate-100 text-sm">
+            <div className="flex flex-col">
+              <span className="text-slate-400 uppercase font-bold text-[10px] tracking-widest">Localização</span>
+              <span className="text-slate-700 font-semibold">{vaga.location}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-slate-400 uppercase font-bold text-[10px] tracking-widest">Contrato</span>
+              <span className="text-slate-700 font-semibold">{vaga.contractType}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-slate-400 uppercase font-bold text-[10px] tracking-widest">Data Limite</span>
+              <span className="text-slate-700 font-semibold italic">Inscreva-se até: {vaga.deadline}</span>
+            </div>
+          </div>
 
-        {/* HEADER DA VAGA */}
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            <h1 className="text-4xl font-extrabold text-slate-800 mb-2">
-              Assistente de Almoxarifado
-            </h1>
-            <p className="text-slate-500">Publicada em 10 de março de 2026</p>
-            <p className="text-slate-500 font-medium">Inscrições abertas até 09 de maio de 2026</p>
-          </div>
-        </div>
-
-        {/* INFO TAGS (BASEADO NA SUA IMAGEM) */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 py-8 border-t border-b border-slate-100 mb-10">
-          <div className="flex items-center gap-2 text-slate-700">
-            <span className="text-xl">📍</span>
-            <span>São Paulo - SP</span>
-          </div>
-          <div className="flex items-center gap-2 text-slate-700">
-            <span className="text-xl">💼</span>
-            <span>Efetivo</span>
-          </div>
-          <div className="flex items-center gap-2 text-slate-700">
-            <span className="text-xl">🏢</span>
-            <span>Presencial</span>
-          </div>
-          <div className="flex items-center gap-2 text-slate-700">
-            <span className="text-xl">♿</span>
-            <span>Vaga também para PcD</span>
-          </div>
-        </div>
-
-        {/* CONTEÚDO DA DESCRIÇÃO */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-bold text-slate-800 mb-6 uppercase tracking-wide border-l-4 border-teal-500 pl-4">
-            Descrição da Vaga
-          </h2>
-          <div className="text-slate-700 leading-relaxed space-y-4">
-            <p>
-              Estamos em busca de uma <strong>Pessoa Assistente de Almoxarife</strong>. 
-              Essa pessoa será responsável pelo controle do estoque físico do almoxarifado, garantindo níveis adequados de materiais para o funcionamento da operação.
+          <div className="prose prose-slate max-w-none mb-12">
+            <h3 className="text-lg font-bold text-slate-800 mb-4 uppercase tracking-wide">Descrição da Vaga</h3>
+            <p className="text-slate-600 leading-relaxed text-lg">
+              {vaga.description}
             </p>
-            <ul className="list-disc list-inside space-y-2 ml-4">
-              <li><strong>Posição:</strong> CLT</li>
-              <li><strong>Horário:</strong> Dedicação de 40h semanais (Segunda a Sexta, das 09h às 18h)</li>
-            </ul>
           </div>
-        </section>
 
-        {/* BOTÃO DE CANDIDATURA */}
-        <div className="bg-slate-50 p-8 rounded-2xl flex flex-col items-center">
-          <Link
-            to="/login"
-              className="bg-blue-700 hover:bg-blue-800 text-white text-xl font-bold py-4 px-12 rounded-lg transition-all shadow-lg hover:scale-105 inline-block"
-            >
-              CANDIDATAR-SE
-            </Link>
-          <p className="mt-4 text-slate-500 text-sm">Você será redirecionado para o formulário de inscrição.</p>
+          {/* BOTÃO DE AÇÃO DINÂMICO */}
+          <Link 
+            to={destinoCandidatura}
+            className="inline-block w-full md:w-auto bg-teal-500 hover:bg-teal-600 text-white text-center font-black py-5 px-12 rounded-2xl transition-all shadow-xl hover:scale-[1.02] active:scale-95 uppercase tracking-widest"
+          >
+            {isAuthenticated ? "CONFIRMAR CANDIDATURA" : "FAÇA LOGIN PARA SE CANDIDATAR"}
+          </Link>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
