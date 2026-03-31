@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, Loader2 } from 'lucide-react'; // Instale lucide-react ou use emojis
+import { CheckCircle, Loader2 } from 'lucide-react';
 import { allJobs } from '../data/jobs';
 
 export function ApplicationForm() {
@@ -11,7 +11,7 @@ export function ApplicationForm() {
   // ESTADOS DO FORMULÁRIO
   const [isSending, setIsSending] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [formacao, setFormacao] = useState('');
+  const [formacaoSelecionada, setFormacaoSelecionada] = useState('');
 
   if (!vaga) return <div className="p-20 text-center font-bold text-slate-400 uppercase tracking-widest">Vaga não encontrada</div>;
 
@@ -19,27 +19,27 @@ export function ApplicationForm() {
     e.preventDefault();
     setIsSending(true);
 
-    // 1. Coleta os dados do formulário de forma técnica
     const formData = new FormData(e.currentTarget);
+    
+    // O PAYLOAD AGORA ESTÁ IDÊNTICO AO SEU MODEL 'CANDIDATE' NO PRISMA
     const payload = {
-      id: Date.now(), // ID temporário
-      vagaId: id,
-      vagaTitulo: vaga.role,
-      nome: formData.get('nome'),
+      fullName: formData.get('fullName'),   // Antes: nome
       email: formData.get('email'),
-      telefone: formData.get('telefone'),
-      formacao: formData.get('formacao'),
+      phone: formData.get('phone'),         // Antes: telefone
+      education: formData.get('education'), // Antes: formacao
       area: formData.get('area') || 'N/A',
-      experiencia: formData.get('experiencia'),
-      turno: formData.get('turno'),
-      dataInicio: formData.get('dataInicio'),
-      dataInscricao: new Date().toISOString()
+      experience: formData.get('experience'), // Antes: experiencia
+      shift: formData.get('shift'),         // Antes: turno
+      positionId: id,                       // ID da vaga (importante para JobApplication)
+      dataInicio: formData.get('dataInicio'), // Informação extra
     };
 
-    // 2. Simulação de Latência de Rede (2 segundos)
+    console.log("Payload pronto para o Backend:", payload);
+
+    // SIMULAÇÃO DE ENVIO (Substituiremos pelo axios.post em breve)
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // 3. Persistência no LocalStorage (Simulando o Banco de Dados)
+    // Persistência temporária enquanto não conectamos o axios
     const candidaturasAntigas = JSON.parse(localStorage.getItem('@arrastao:candidaturas') || '[]');
     localStorage.setItem('@arrastao:candidaturas', JSON.stringify([...candidaturasAntigas, payload]));
 
@@ -50,7 +50,6 @@ export function ApplicationForm() {
   const inputStyle = "w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:bg-white outline-none transition-all text-slate-700 disabled:opacity-50";
   const labelStyle = "block text-[10px] font-black text-slate-500 uppercase tracking-[0.15em] mb-2";
 
-  // TELA DE SUCESSO ANIMADA
   if (isSuccess) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center px-6">
@@ -67,9 +66,9 @@ export function ApplicationForm() {
           </motion.div>
           <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Inscrição Confirmada!</h2>
           <p className="text-slate-500 mt-4 leading-relaxed">
-            Sua candidatura para <strong>{vaga.role}</strong> foi registrada com sucesso em nossa base de talentos.
+            Sua candidatura para <strong>{vaga.role}</strong> foi registrada com sucesso.
           </p>
-          <div className="mt-8 space-y-3">
+          <div className="mt-8">
             <Link to="/" className="block w-full bg-teal-500 text-white font-black py-4 rounded-xl hover:bg-teal-600 transition-all uppercase tracking-widest text-sm">
               Voltar para Vagas
             </Link>
@@ -86,11 +85,9 @@ export function ApplicationForm() {
         animate={{ opacity: 1, y: 0 }}
         className="max-w-4xl mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200"
       >
-        <div className="bg-slate-900 p-10 text-white flex justify-between items-center">
-          <div>
-            <span className="text-teal-400 text-xs font-black uppercase tracking-widest">Inscrição Online</span>
-            <h1 className="text-4xl font-black uppercase tracking-tighter mt-2">{vaga.role}</h1>
-          </div>
+        <div className="bg-slate-900 p-10 text-white">
+          <span className="text-teal-400 text-xs font-black uppercase tracking-widest">Inscrição Online</span>
+          <h1 className="text-4xl font-black uppercase tracking-tighter mt-2">{vaga.role}</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="p-10 md:p-16 space-y-12">
@@ -100,7 +97,7 @@ export function ApplicationForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="md:col-span-2">
                 <label className={labelStyle}>Nome Completo</label>
-                <input name="nome" type="text" required className={inputStyle} disabled={isSending} />
+                <input name="fullName" type="text" required className={inputStyle} disabled={isSending} />
               </div>
               <div>
                 <label className={labelStyle}>E-mail</label>
@@ -108,7 +105,7 @@ export function ApplicationForm() {
               </div>
               <div>
                 <label className={labelStyle}>Telefone</label>
-                <input name="telefone" type="tel" required placeholder="(11) 99999-9999" className={inputStyle} disabled={isSending} />
+                <input name="phone" type="tel" required placeholder="(11) 99999-9999" className={inputStyle} disabled={isSending} />
               </div>
             </div>
           </section>
@@ -117,27 +114,27 @@ export function ApplicationForm() {
           <section className="space-y-6">
             <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight border-b border-slate-100 pb-2">2. Formação e Experiência</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className={['superior_inc', 'superior', 'pos'].includes(formacao) ? "md:col-span-1" : "md:col-span-2"}>
+              <div className={['superior_inc', 'superior', 'pos'].includes(formacaoSelecionada) ? "md:col-span-1" : "md:col-span-2"}>
                 <label className={labelStyle}>Grau de Formação</label>
                 <select 
-                  name="formacao"
+                  name="education"
                   required 
                   className={inputStyle}
-                  value={formacao}
-                  onChange={(e) => setFormacao(e.target.value)}
+                  value={formacaoSelecionada}
+                  onChange={(e) => setFormacaoSelecionada(e.target.value)}
                   disabled={isSending}
                 >
                   <option value="">Selecione...</option>
                   <option value="medio">Ensino Médio</option>
                   <option value="tecnico">Ensino Técnico</option>
                   <option value="superior_inc">Superior Incompleto</option>
-                  <option value="superior">Superior Complet</option>
+                  <option value="superior">Superior Completo</option>
                   <option value="pos">Pós-graduação / MBA</option>
                 </select>
               </div>
 
               <AnimatePresence>
-                {['superior_inc', 'superior', 'pos'].includes(formacao) && (
+                {['superior_inc', 'superior', 'pos'].includes(formacaoSelecionada) && (
                   <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="md:col-span-1">
                     <label className={labelStyle}>Área de Formação / Curso</label>
                     <input name="area" type="text" required className={inputStyle} disabled={isSending} />
@@ -147,7 +144,7 @@ export function ApplicationForm() {
 
               <div className="md:col-span-2">
                 <label className={labelStyle}>Resumo da Experiência</label>
-                <textarea name="experiencia" rows={4} required className={`${inputStyle} resize-none`} disabled={isSending}></textarea>
+                <textarea name="experience" rows={4} required className={`${inputStyle} resize-none`} disabled={isSending}></textarea>
               </div>
             </div>
           </section>
@@ -158,7 +155,7 @@ export function ApplicationForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className={labelStyle}>Turno Disponível</label>
-                <select name="turno" required className={inputStyle} disabled={isSending}>
+                <select name="shift" required className={inputStyle} disabled={isSending}>
                   <option value="">Selecione...</option>
                   <option value="manha">Manhã</option>
                   <option value="tarde">Tarde</option>
@@ -173,11 +170,11 @@ export function ApplicationForm() {
             </div>
           </section>
 
-          <div className="pt-10 flex flex-col md:flex-row gap-6">
+          <div className="pt-10">
             <button 
               type="submit" 
               disabled={isSending}
-              className="flex-1 bg-teal-500 text-white font-black py-5 rounded-2xl shadow-xl transition-all cursor-pointer hover:bg-teal-600 disabled:bg-slate-300 flex items-center justify-center gap-3 uppercase tracking-widest"
+              className="w-full bg-teal-500 text-white font-black py-5 rounded-2xl shadow-xl transition-all cursor-pointer hover:bg-teal-600 disabled:bg-slate-300 flex items-center justify-center gap-3 uppercase tracking-widest"
             >
               {isSending ? (
                 <><Loader2 className="animate-spin" /> PROCESSANDO...</>
