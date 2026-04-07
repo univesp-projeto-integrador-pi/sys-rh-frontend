@@ -84,7 +84,6 @@ export function Login() {
           >
             ENTRAR
           </button>
-        </form>
 
         <div className="mt-8 pt-6 border-t border-slate-100 text-center">
           <p className="text-slate-600">
