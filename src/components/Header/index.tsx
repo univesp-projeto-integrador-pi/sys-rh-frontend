@@ -1,19 +1,33 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck } from 'lucide-react'; // Ícone de segurança para o Admin
+import { ShieldCheck } from 'lucide-react';
 import logoImg from '../../assets/logoarrastao.png';
 
 export function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Verifica se o token existe (usuário logado)
+  // 1. Verifica autenticação
   const isAuthenticated = !!localStorage.getItem("user_token");
-  const userName = localStorage.getItem("user_name") || "Usuário";
+
+  // 2. Recupera o nome do usuário de forma dinâmica
+  const getDisplayName = () => {
+    const userJson = localStorage.getItem("logged_user");
+    if (userJson) {
+      const user = JSON.parse(userJson);
+      return user.name.split(' ')[0]; // Retorna apenas o primeiro nome para ficar elegante
+    }
+    return "Admin"; // Fallback para o admin padrão
+  };
+
+  const userName = getDisplayName();
 
   const handleLogout = () => {
+    // Limpa todos os dados de sessão
     localStorage.removeItem("user_token");
     localStorage.removeItem("user_name");
+    localStorage.removeItem("logged_user"); 
+    
     navigate("/login");
     window.location.reload(); 
   };
@@ -33,7 +47,6 @@ export function Header() {
         backgroundImage: `url('https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=2000')` 
       }}
     >
-      {}
       <div className="absolute inset-0 bg-black/50 z-0"></div>
 
       <nav className="relative z-10 max-w-7xl mx-auto px-6 py-4 flex items-center justify-between text-white border-b border-white/10">
@@ -65,7 +78,6 @@ export function Header() {
 
           {isAuthenticated ? (
             <div className="flex items-center gap-6">
-              {/* NOVO BOTÃO DE ADMIN - Aparece apenas se logado */}
               <Link 
                 to="/admin/candidaturas" 
                 className="flex items-center gap-2 bg-teal-500/20 hover:bg-teal-500 border border-teal-500/50 px-3 py-1.5 rounded text-[10px] font-black text-teal-400 hover:text-white transition-all duration-300 group"
@@ -75,7 +87,9 @@ export function Header() {
               </Link>
 
               <div className="flex flex-col items-end">
-                <span className="text-teal-400 lowercase italic text-[11px]">Olá, {userName}</span>
+                <span className="text-teal-400 lowercase italic text-[11px] font-medium">
+                  olá, <strong className="uppercase not-italic font-black">{userName}</strong>
+                </span>
                 <button 
                   onClick={handleLogout} 
                   className="text-[10px] text-white/50 hover:text-red-400 font-bold cursor-pointer transition-all uppercase tracking-tighter"
