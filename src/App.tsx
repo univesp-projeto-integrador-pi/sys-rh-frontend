@@ -6,12 +6,12 @@ import { ApplicationForm } from './pages/ApplicationForm';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { Register } from './pages/Register'; // Adicione este import
+import { AdminRoute } from './components/AdminRoute'; // NOVO IMPORT
+import { Register } from './pages/Register';
 
 // Páginas Administrativas
 import AdminApplications from './pages/AdminApplications';
-import { AdminUsers } from './pages/AdminUsers'; // Nova página
-
+import { AdminUsers } from './pages/AdminUsers';
 
 function App() {
   return (
@@ -28,19 +28,20 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             
-            {/* ROTAS PROTEGIDAS (REQUEREM LOGIN) */}
+            {/* ROTAS PROTEGIDAS (QUALQUER USUÁRIO LOGADO) */}
             <Route element={<ProtectedRoute />}>
-              {/* Redirecionamento base do Admin */}
+              {/* Aqui você pode colocar páginas que qualquer usuário logado pode acessar */}
+              {/* Por exemplo: área do candidato, minhas candidaturas, etc. */}
+            </Route>
+            
+            {/* ROTAS ADMIN (APENAS ADMINISTRADORES) */}
+            <Route element={<AdminRoute />}>
               <Route path="/admin" element={<Navigate to="/admin/candidaturas" replace />} />
-              
-              {/* Gestão de Candidaturas (Cursos/Vagas) */}
               <Route path="/admin/candidaturas" element={<AdminApplications />} />
-              
-              {/* Gestão de Usuários Cadastrados */}
               <Route path="/admin/usuarios" element={<AdminUsers />} />
             </Route>
             
-            {/* FALLBACK: Redireciona qualquer rota inválida para o Início */}
+            {/* FALLBACK */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

@@ -6,30 +6,40 @@ import logoImg from '../../assets/logoarrastao.png';
 export function Header() {
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // 1. Verifica autenticação
   const isAuthenticated = !!localStorage.getItem("user_token");
 
-  // 2. Recupera o nome do usuário de forma dinâmica
+  // 2. Verifica se é admin (NOVO)
+  const isAdmin = () => {
+    const userJson = localStorage.getItem("logged_user");
+    if (userJson) {
+      const user = JSON.parse(userJson);
+      return user.role === 'ADMIN';
+    }
+    return false;
+  };
+
+  // 3. Recupera o nome do usuário de forma dinâmica
   const getDisplayName = () => {
     const userJson = localStorage.getItem("logged_user");
     if (userJson) {
       const user = JSON.parse(userJson);
-      return user.name.split(' ')[0]; // Retorna apenas o primeiro nome para ficar elegante
+      return user.name.split(' ')[0];
     }
-    return "Admin"; // Fallback para o admin padrão
+    return "Usuário";
   };
 
   const userName = getDisplayName();
+  const userIsAdmin = isAdmin(); // Guarda o resultado da verificação
 
   const handleLogout = () => {
-    // Limpa todos os dados de sessão
     localStorage.removeItem("user_token");
     localStorage.removeItem("user_name");
-    localStorage.removeItem("logged_user"); 
+    localStorage.removeItem("logged_user");
     
     navigate("/login");
-    window.location.reload(); 
+    window.location.reload();
   };
 
   const navLinks = [
@@ -41,10 +51,10 @@ export function Header() {
   ];
 
   return (
-    <div 
+    <div
       className="relative w-full bg-cover bg-center font-sans overflow-hidden shadow-lg"
-      style={{ 
-        backgroundImage: `url('https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=2000')` 
+      style={{
+        backgroundImage: `url('https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=2000')`
       }}
     >
       <div className="absolute inset-0 bg-black/50 z-0"></div>
@@ -78,20 +88,23 @@ export function Header() {
 
           {isAuthenticated ? (
             <div className="flex items-center gap-6">
-              <Link 
-                to="/admin/candidaturas" 
-                className="flex items-center gap-2 bg-teal-500/20 hover:bg-teal-500 border border-teal-500/50 px-3 py-1.5 rounded text-[10px] font-black text-teal-400 hover:text-white transition-all duration-300 group"
-              >
-                <ShieldCheck size={14} className="group-hover:rotate-12 transition-transform" />
-                ADMIN
-              </Link>
+              {/* BOTÃO ADMIN - SÓ APARECE SE FOR ADMIN */}
+              {userIsAdmin && (
+                <Link
+                  to="/admin/candidaturas"
+                  className="flex items-center gap-2 bg-teal-500/20 hover:bg-teal-500 border border-teal-500/50 px-3 py-1.5 rounded text-[10px] font-black text-teal-400 hover:text-white transition-all duration-300 group"
+                >
+                  <ShieldCheck size={14} className="group-hover:rotate-12 transition-transform" />
+                  ADMIN
+                </Link>
+              )}
 
               <div className="flex flex-col items-end">
                 <span className="text-teal-400 lowercase italic text-[11px] font-medium">
                   olá, <strong className="uppercase not-italic font-black">{userName}</strong>
                 </span>
-                <button 
-                  onClick={handleLogout} 
+                <button
+                  onClick={handleLogout}
                   className="text-[10px] text-white/50 hover:text-red-400 font-bold cursor-pointer transition-all uppercase tracking-tighter"
                 >
                   [ Sair ]
@@ -99,8 +112,8 @@ export function Header() {
               </div>
             </div>
           ) : (
-            <Link 
-              to="/login" 
+            <Link
+              to="/login"
               className="bg-teal-500 hover:bg-teal-600 px-5 py-2.5 rounded-lg text-white font-bold cursor-pointer transition-all duration-300 shadow-lg hover:-translate-y-1 active:scale-95 text-[11px] tracking-widest"
             >
               ÁREA DO CANDIDATO
@@ -112,7 +125,7 @@ export function Header() {
       {/* Título Centralizado do Banner */}
       <div className="relative z-10 h-[350px] flex items-center justify-center">
         <AnimatePresence mode="wait">
-          <motion.h1 
+          <motion.h1
             key={location.pathname}
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}

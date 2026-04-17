@@ -4,39 +4,45 @@ import { useNavigate, Link } from 'react-router-dom';
 export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(''); // Novo estado para exibir erros na tela
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false); // Estado para loading
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(''); // Limpa os erros antes de tentar logar novamente
+    setError('');
+    setIsLoading(true); // Inicia o loading
 
-    // 1. Busca os usuários salvos no LocalStorage (criados pelo Register.tsx)
-    const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
+    try {
+      // Chamada para a API de Login (mesma base do register)
+      const response = await fetch('http://localhost:3000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-    // 2. Procura um usuário que tenha exatamente o mesmo e-mail e senha digitados
-    const validUser = storedUsers.find(
-      (user: any) => user.email === email && user.password === password
-    );
+      const data = await response.json();
 
-    // 3. (Opcional) Mantemos o admin padrão como um "Mestre" caso você precise
-    const isAdminDefault = email === "admin@teste.com" && password === "123456";
+      if (!response.ok) {
+        throw new Error(data.message || 'E-mail ou senha incorretos.');
+      }
 
-    // 4. Valida se encontrou o usuário ou se é o admin
-    if (validUser || isAdminDefault) {
-      // Cria o token de sessão
-      localStorage.setItem("user_token", "sessao_ativa_123");
+      // Salva o token JWT e dados do usuário
+      localStorage.setItem("user_token", data.accessToken);
       
-      // Salva os dados do usuário logado (útil se você quiser mostrar o nome dele no Header depois)
-      if (validUser) {
-        localStorage.setItem("logged_user", JSON.stringify(validUser));
+      if (data.user) {
+        localStorage.setItem("logged_user", JSON.stringify(data.user));
       }
 
       navigate("/");
       window.location.reload(); 
-    } else {
-      // Se não encontrar, exibe o erro
-      setError("E-mail ou senha incorretos. Tente novamente.");
+
+    } catch (err: any) {
+      setError(err.message || 'Erro ao conectar com o servidor.');
+    } finally {
+      setIsLoading(false); // Finaliza o loading
     }
   };
 
@@ -47,7 +53,6 @@ export function Login() {
 
         <form onSubmit={handleLogin} className="space-y-6">
           
-          {/* MENSAGEM DE ERRO VISUAL */}
           {error && (
             <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm text-center font-bold border border-red-200 animate-pulse">
               {error}
@@ -61,7 +66,8 @@ export function Login() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-teal-500 transition-all"
+              disabled={isLoading} // Desabilita durante o loading
+              className="w-full p-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-teal-500 transition-all disabled:bg-slate-100 disabled:cursor-not-allowed"
               placeholder="exemplo@email.com"
             />
           </div>
@@ -73,16 +79,18 @@ export function Login() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-teal-500 transition-all"
+              disabled={isLoading} // Desabilita durante o loading
+              className="w-full p-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-teal-500 transition-all disabled:bg-slate-100 disabled:cursor-not-allowed"
               placeholder="Sua senha"
             />
           </div>
           
           <button 
             type="submit" 
-            className="w-full bg-teal-500 text-white font-black py-4 rounded-xl shadow-lg transition-all duration-300 cursor-pointer hover:bg-teal-600 hover:-translate-y-1 active:scale-[0.98] uppercase tracking-widest"
+            disabled={isLoading} // Desabilita durante o loading
+            className="w-full bg-teal-500 text-white font-black py-4 rounded-xl shadow-lg transition-all duration-300 cursor-pointer hover:bg-teal-600 hover:-translate-y-1 active:scale-[0.98] uppercase tracking-widest disabled:bg-slate-400 disabled:cursor-not-allowed disabled:hover:translate-y-0"
           >
-            ENTRAR
+            {isLoading ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
 
