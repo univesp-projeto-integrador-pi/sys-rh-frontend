@@ -7,31 +7,35 @@ export function Header() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 1. Verifica autenticação
-  const isAuthenticated = !!localStorage.getItem("user_token");
+  // 1. Recupera os dados brutos do LocalStorage
+  const token = localStorage.getItem("user_token");
+  const userJson = localStorage.getItem("logged_user");
+  
+  // 2. Transforma em objeto JS (se existir)
+  const user = userJson ? JSON.parse(userJson) : null;
 
-  // 2. Verifica se é admin (NOVO)
-  const isAdmin = () => {
-    const userJson = localStorage.getItem("logged_user");
-    if (userJson) {
-      const user = JSON.parse(userJson);
-      return user.role === 'ADMIN';
-    }
-    return false;
-  };
+  // 3. Define as constantes de estado
+  const isAuthenticated = !!token;
+  
+  // Usamos o toUpperCase() para garantir que 'admin' ou 'ADMIN' funcionem
+  const userIsAdmin = user?.role?.toUpperCase() === 'ADMIN';
 
-  // 3. Recupera o nome do usuário de forma dinâmica
+  // 4. LOGS DE DEBUG (Abra o F12 no navegador para ver isso)
+  console.log("=== DEBUG HEADER ===");
+  console.log("Token existe?", isAuthenticated);
+  console.log("Objeto User completo:", user);
+  console.log("Role detectada:", user?.role);
+  console.log("É Admin?", userIsAdmin);
+  console.log("=====================");
+
   const getDisplayName = () => {
-    const userJson = localStorage.getItem("logged_user");
-    if (userJson) {
-      const user = JSON.parse(userJson);
+    if (user?.name) {
       return user.name.split(' ')[0];
     }
     return "Usuário";
   };
 
   const userName = getDisplayName();
-  const userIsAdmin = isAdmin(); // Guarda o resultado da verificação
 
   const handleLogout = () => {
     localStorage.removeItem("user_token");
@@ -88,10 +92,10 @@ export function Header() {
 
           {isAuthenticated ? (
             <div className="flex items-center gap-6">
-              {/* BOTÃO ADMIN - SÓ APARECE SE FOR ADMIN */}
+              {/* BOTÃO ADMIN - SÓ APARECE SE A CONSTANTE userIsAdmin FOR TRUE */}
               {userIsAdmin && (
                 <Link
-                  to="/admin/candidaturas"
+                  to="/admin/usuarios"
                   className="flex items-center gap-2 bg-teal-500/20 hover:bg-teal-500 border border-teal-500/50 px-3 py-1.5 rounded text-[10px] font-black text-teal-400 hover:text-white transition-all duration-300 group"
                 >
                   <ShieldCheck size={14} className="group-hover:rotate-12 transition-transform" />
@@ -122,7 +126,7 @@ export function Header() {
         </div>
       </nav>
 
-      {/* Título Centralizado do Banner */}
+      {/* Título Centralizado */}
       <div className="relative z-10 h-[350px] flex items-center justify-center">
         <AnimatePresence mode="wait">
           <motion.h1
