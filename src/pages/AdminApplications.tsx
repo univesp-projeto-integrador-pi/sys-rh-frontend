@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trash2, User, Mail, Calendar, Clock, Briefcase, ChevronDown, ChevronUp, FileText } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom'; // Importados para a navegação
+import { Trash2, User, Calendar, Clock, Briefcase, ChevronDown, ChevronUp, FileText, Users } from 'lucide-react';
 
 interface Candidatura {
   id: number;
@@ -18,6 +19,7 @@ interface Candidatura {
 export default function AdminApplications() {
   const [candidaturas, setCandidaturas] = useState<Candidatura[]>([]);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const location = useLocation(); // Para identificar a aba ativa
 
   useEffect(() => {
     const dados = JSON.parse(localStorage.getItem('@arrastao:candidaturas') || '[]');
@@ -44,16 +46,42 @@ export default function AdminApplications() {
     <div className="p-8">
       <div className="max-w-7xl mx-auto">
         
-        <header className="mb-10 flex justify-between items-end border-b border-slate-200 pb-6">
+        <header className="mb-6 flex justify-between items-end">
           <div>
             <span className="text-teal-600 font-black text-xs uppercase tracking-[0.2em]">Painel de Controle</span>
-            <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">Candidaturas <span className="text-slate-400">Recebidas</span></h1>
+            <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">Administrativo</h1>
           </div>
           <div className="bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
-            <span className="text-slate-500 text-xs font-bold uppercase">Total: </span>
+            <span className="text-slate-500 text-xs font-bold uppercase">Inscrições: </span>
             <span className="text-teal-600 font-black text-lg">{candidaturas.length}</span>
           </div>
         </header>
+
+        {/* --- NOVO SISTEMA DE ABAS --- */}
+        <div className="flex gap-8 border-b border-slate-200 mb-10">
+          <Link 
+            to="/admin/candidaturas" 
+            className={`pb-4 text-[11px] font-black tracking-[0.2em] transition-all flex items-center gap-2 ${
+              location.pathname === '/admin/candidaturas' 
+              ? 'border-b-4 border-teal-500 text-teal-600' 
+              : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <FileText size={14} />
+            CANDIDATURAS
+          </Link>
+          <Link 
+            to="/admin/usuarios" 
+            className={`pb-4 text-[11px] font-black tracking-[0.2em] transition-all flex items-center gap-2 ${
+              location.pathname === '/admin/usuarios' 
+              ? 'border-b-4 border-teal-500 text-teal-600' 
+              : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <Users size={14} />
+            USUÁRIOS DO SISTEMA
+          </Link>
+        </div>
 
         {candidaturas.length === 0 ? (
           <div className="bg-white rounded-3xl p-20 text-center border-2 border-dashed border-slate-200">
@@ -69,7 +97,7 @@ export default function AdminApplications() {
                 transition={{ delay: index * 0.05 }}
                 className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:border-teal-200 transition-colors"
               >
-                {/* LINHA PRINCIPAL */}
+                {/* O seu código de renderização das candidaturas continua exatamente igual daqui para baixo */}
                 <div className="p-6 flex flex-col md:flex-row justify-between items-center gap-6">
                   <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-6 w-full text-left">
                     <div className="flex flex-col">
@@ -105,7 +133,6 @@ export default function AdminApplications() {
                     </div>
                   </div>
 
-                  {/* AÇÕES */}
                   <div className="flex items-center gap-3 border-l border-slate-100 pl-6">
                     <button 
                       onClick={() => toggleExpand(c.id)}
@@ -123,14 +150,12 @@ export default function AdminApplications() {
                     <button 
                       onClick={() => handleDelete(c.id)}
                       className="bg-red-50 text-red-400 p-2.5 rounded-xl hover:bg-red-500 hover:text-white transition-all cursor-pointer group"
-                      title="Excluir Candidatura"
                     >
                       <Trash2 size={16} />
                     </button>
                   </div>
                 </div>
 
-                {/* ÁREA EXPANSÍVEL (EXPERIÊNCIA) */}
                 <AnimatePresence>
                   {expandedId === c.id && (
                     <motion.div 
