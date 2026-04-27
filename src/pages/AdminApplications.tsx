@@ -1,10 +1,23 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link, useLocation } from 'react-router-dom'; // Importados para a navegação
-import { Trash2, User, Calendar, Clock, Briefcase, ChevronDown, ChevronUp, FileText, Users } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { Trash2, User, Calendar, Clock, Briefcase, ChevronDown, ChevronUp, FileText, Users, AlertCircle } from 'lucide-react';
+
+interface JobApplication {
+  id: string;
+  candidate?: {
+    fullName: string;
+    email: string;
+  };
+  position?: {
+    title: string;
+  };
+  currentStage: string;
+  appliedAt: string;
+}
 
 interface Candidatura {
-  id: number;
+  id: string;
   vagaTitulo: string;
   nome: string;
   email: string;
@@ -18,27 +31,83 @@ interface Candidatura {
 
 export default function AdminApplications() {
   const [candidaturas, setCandidaturas] = useState<Candidatura[]>([]);
-  const [expandedId, setExpandedId] = useState<number | null>(null);
-  const location = useLocation(); // Para identificar a aba ativa
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const location = useLocation();
 
   useEffect(() => {
-    const dados = JSON.parse(localStorage.getItem('@arrastao:candidaturas') || '[]');
-    const ordenados = dados.sort((a: any, b: any) => 
-      new Date(b.dataInscricao).getTime() - new Date(a.dataInscricao).getTime()
-    );
-    setCandidaturas(ordenados);
+    const fetchApplications = async () => {
+      setLoading(true);
+      setError(null);
+      const token = localStorage.getItem("user_token");
+
+      try {
+        const response = await fetch('http://localhost:3000/api/job-applications', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) throw new Error('Erro ao carregar candidaturas');
+
+        const data: JobApplication[] = await response.json();
+        console.log("Candidaturas recebidas:", data);
+
+        // Mapear dados da API para o formato esperado
+        const candidaturasMapeadas: Candidatura[] = data.map((app) => ({
+          id: app.id,
+          vagaTitulo: app.position?.title || 'Vaga excluída',
+          nome: app.candidate?.fullName || 'N/A',
+          email: app.candidate?.email || 'N/A',
+          telefone: '',
+          formacao: '',
+          area: '',
+          turno: '',
+          experiencia: '',
+          dataInscricao: app.appliedAt
+        }));
+
+        // Ordenar por data mais recente
+        const ordenadas = candidaturasMapeadas.sort((a, b) =>
+          new Date(b.dataInscricao).getTime() - new Date(a.dataInscricao).getTime()
+        );
+
+        setCandidaturas(ordenadas);
+      } catch (err: any) {
+        setError(err.message);
+        console.error("Erro ao buscar candidaturas:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchApplications();
   }, []);
 
-  const toggleExpand = (id: number) => {
+  const toggleExpand = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
   };
 
-  const handleDelete = (id: number) => {
-    if (window.confirm("Deseja remover esta candidatura permanentemente?")) {
-      const novasCandidaturas = candidaturas.filter(c => c.id !== id);
-      localStorage.setItem('@arrastao:candidaturas', JSON.stringify(novasCandidaturas));
-      setCandidaturas(novasCandidaturas);
-      if (expandedId === id) setExpandedId(null);
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Deseja remover esta candidatura permanentemente?")) return;
+
+    try {
+      const token = localStorage.getItem("user_token");
+      const response = await fetch(`http://localhost:3000/api/job-applications/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        setCandidaturas(prev => prev.filter(c => c.id !== id));
+        if (expandedId === id) setExpandedId(null);
+      } else {
+        alert('Erro ao excluir candidatura');
+      }
+    } catch (err) {
+      alert('Erro ao excluir candidatura');
     }
   };
 
@@ -83,7 +152,17 @@ export default function AdminApplications() {
           </Link>
         </div>
 
-        {candidaturas.length === 0 ? (
+        {error && (
+          <div className="mb-6 bg-red-50 text-red-600 p-4 rounded-xl border border-red-100 flex gap-2 items-center">
+            <AlertCircle size={18} /> {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="bg-white rounded-3xl p-20 text-center border-2 border-dashed border-slate-200">
+            <p className="text-slate-400 font-medium italic">Carregando candidaturas...</p>
+          </div>
+        ) : candidaturas.length === 0 ? (
           <div className="bg-white rounded-3xl p-20 text-center border-2 border-dashed border-slate-200">
             <p className="text-slate-400 font-medium italic">Nenhuma candidatura registrada no momento.</p>
           </div>

@@ -1,74 +1,100 @@
-import { useParams, Link } from 'react-router-dom';
-import { allJobs } from '../data/jobs'; // Certifique-se de que o caminho dos dados está correto
+import { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Briefcase, MapPin, Building, Calendar, ArrowLeft, Loader2 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+
+interface Job {
+  id: string;
+  title: string;
+  description: string;
+  requirements?: string;
+  location?: string;
+  salary?: string;
+  department?: { name: string };
+}
 
 export function JobDetails() {
-  const { id } = useParams();
-  
-  // 1. Busca a vaga pelo ID da URL
-  const vaga = allJobs.find(j => j.id === Number(id));
+  const { id } = useParams<{ id: string }>(); // Captura o ID da URL
+  const navigate = useNavigate();
+  const [job, setJob] = useState<Job | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // 2. Verifica se o usuário está logado para decidir o destino do botão
-  const isAuthenticated = !!localStorage.getItem("user_token");
-  const destinoCandidatura = isAuthenticated 
-    ? `/vaga/${id}/candidatar` 
-    : "/login";
+  useEffect(() => {
+    const fetchJob = async () => {
+      try {
+        setIsLoading(true);
+        // ⚠️ Verifique se a URL do seu backend para buscar UMA vaga é essa:
+        const response = await fetch(`http://localhost:3000/api/jobs/${id}`);
+        
+        if (!response.ok) {
+          throw new Error('Vaga não encontrada');
+        }
 
-  if (!vaga) {
+        const data = await response.json();
+        setJob(data);
+      } catch (error) {
+        console.error(error);
+        toast.error("Não foi possível carregar os detalhes da vaga.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (id) fetchJob();
+  }, [id]);
+
+  if (isLoading) {
     return (
-      <div className="p-10 text-center">
-        <h1 className="text-2xl font-bold text-slate-800">Vaga não encontrada.</h1>
-        <Link to="/" className="text-blue-600 underline">Voltar para a lista</Link>
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="animate-spin text-teal-600" size={40} />
+      </div>
+    );
+  }
+
+  if (!job) {
+    return (
+      <div className="text-center py-20">
+        <h2 className="text-2xl font-bold text-slate-800">Vaga não encontrada</h2>
+        <button onClick={() => navigate('/')} className="mt-4 text-teal-600 font-bold">
+          Voltar para a home
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="p-8">
-      <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-        
-        {/* CONTEÚDO DA VAGA */}
-        <div className="p-8 md:p-12">
-          <div className="flex justify-between items-start mb-8">
-            <div>
-              <span className="bg-teal-100 text-teal-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                {vaga.tag}
-              </span>
-              <h1 className="text-4xl font-black text-slate-900 mt-4 leading-tight">
-                {vaga.role}
-              </h1>
-              <p className="text-xl text-slate-500 font-medium">{vaga.company}</p>
-            </div>
-          </div>
+    <div className="max-w-4xl mx-auto py-12 px-4">
+      <button 
+        onClick={() => navigate(-1)} 
+        className="flex items-center gap-2 text-slate-500 hover:text-slate-800 mb-8 transition-colors"
+      >
+        <ArrowLeft size={20} /> Voltar
+      </button>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 pb-10 border-b border-slate-100 text-sm">
-            <div className="flex flex-col">
-              <span className="text-slate-400 uppercase font-bold text-[10px] tracking-widest">Localização</span>
-              <span className="text-slate-700 font-semibold">{vaga.location}</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-slate-400 uppercase font-bold text-[10px] tracking-widest">Contrato</span>
-              <span className="text-slate-700 font-semibold">{vaga.contractType}</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-slate-400 uppercase font-bold text-[10px] tracking-widest">Data Limite</span>
-              <span className="text-slate-700 font-semibold italic">Inscreva-se até: {vaga.deadline}</span>
-            </div>
+      <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
+        <header className="mb-8 border-b border-slate-100 pb-8">
+          <div className="flex items-center gap-4 mb-4">
+             <span className="px-3 py-1 bg-teal-50 text-teal-600 rounded-lg text-xs font-black uppercase">
+              {job.department?.name || 'Geral'}
+            </span>
           </div>
+          <h1 className="text-3xl font-black text-slate-900 mb-4 tracking-tight">{job.title}</h1>
+        </header>
 
-          <div className="prose prose-slate max-w-none mb-12">
-            <h3 className="text-lg font-bold text-slate-800 mb-4 uppercase tracking-wide">Descrição da Vaga</h3>
-            <p className="text-slate-600 leading-relaxed text-lg">
-              {vaga.description}
-            </p>
-          </div>
+        <div className="space-y-8 text-slate-600">
+          <section>
+            <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+              <Briefcase size={20} className="text-teal-500" /> Descrição da Vaga
+            </h2>
+            <p className="leading-relaxed whitespace-pre-line">{job.description}</p>
+          </section>
 
-          {/* BOTÃO DE AÇÃO DINÂMICO */}
-          <Link 
-            to={destinoCandidatura}
-            className="inline-block w-full md:w-auto bg-teal-500 hover:bg-teal-600 text-white text-center font-black py-5 px-12 rounded-2xl transition-all shadow-xl hover:scale-[1.02] active:scale-95 uppercase tracking-widest"
+          <button 
+            onClick={() => navigate(`/vaga/${id}/candidatar`)}
+            className="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold text-lg hover:bg-teal-600 transition-all shadow-lg hover:shadow-teal-200"
           >
-            {isAuthenticated ? "CONFIRMAR CANDIDATURA" : "FAÇA LOGIN PARA SE CANDIDATAR"}
-          </Link>
+            Candidatar-se agora
+          </button>
         </div>
       </div>
     </div>
