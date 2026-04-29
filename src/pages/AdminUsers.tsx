@@ -41,7 +41,7 @@ export function AdminUsers() {
     const endpoint = isApplicationsTab ? 'job-applications' : 'users';
 
     try {
-      const response = await fetch(`http://localhost:3000/api/${endpoint}`, {
+      const response = await fetch(`http://localhost:3000/api/v1/${endpoint}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -74,7 +74,7 @@ export function AdminUsers() {
     if (!window.confirm("Confirmar exclusão permanente?")) return;
     try {
       const token = localStorage.getItem("user_token");
-      const url = type === 'user' ? `/api/users/${id}` : `/api/job-applications/${id}`;
+      const url = type === 'user' ? `/api/v1/users/${id}` : `/api/v1/job-applications/${id}`;
       
       const res = await fetch(`http://localhost:3000${url}`, { 
         method: 'DELETE',

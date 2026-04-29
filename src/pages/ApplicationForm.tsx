@@ -24,7 +24,7 @@ export function ApplicationForm() {
       }
 
       try {
-        const response = await fetch('http://localhost:3000/api/candidates/me', {
+        const response = await fetch('http://localhost:3000/api/v1/candidates-external/me', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -52,7 +52,7 @@ export function ApplicationForm() {
     const token = localStorage.getItem("user_token");
 
     try {
-      const response = await fetch('http://localhost:3000/api/job-applications', {
+      const response = await fetch('http://localhost:3000/api/v1/job-applications', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

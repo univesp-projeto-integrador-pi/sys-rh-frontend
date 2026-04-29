@@ -25,7 +25,7 @@ export function Header() {
       if (isAuthenticated && !userIsAdmin) {
         try {
           setIsCheckingProfile(true);
-          const response = await fetch('http://localhost:3000/api/candidates/me', {
+          const response = await fetch('http://localhost:3000/api/v1/candidates-external/me', {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           

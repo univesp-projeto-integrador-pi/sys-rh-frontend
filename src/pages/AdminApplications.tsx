@@ -43,7 +43,7 @@ export default function AdminApplications() {
       const token = localStorage.getItem("user_token");
 
       try {
-        const response = await fetch('http://localhost:3000/api/job-applications', {
+        const response = await fetch('http://localhost:3000/api/v1/job-applications', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -95,7 +95,7 @@ export default function AdminApplications() {
 
     try {
       const token = localStorage.getItem("user_token");
-      const response = await fetch(`http://localhost:3000/api/job-applications/${id}`, {
+      const response = await fetch(`http://localhost:3000/api/v1/job-applications/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

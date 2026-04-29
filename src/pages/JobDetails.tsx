@@ -24,7 +24,7 @@ export function JobDetails() {
       try {
         setIsLoading(true);
         // ⚠️ Verifique se a URL do seu backend para buscar UMA vaga é essa:
-        const response = await fetch(`http://localhost:3000/api/jobs/${id}`);
+        const response = await fetch(`http://localhost:3000/api/v1/jobs-available/${id}`);
         
         if (!response.ok) {
           throw new Error('Vaga não encontrada');

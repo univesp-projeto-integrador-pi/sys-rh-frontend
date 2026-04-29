@@ -36,7 +36,7 @@ export function CompleteProfile() {
     console.log("🚀 [FRONTEND] Enviando payload estruturado:", payload);
 
     try {
-      const response = await fetch('http://localhost:3000/api/candidates', {
+      const response = await fetch('http://localhost:3000/api/v1/candidates-external', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

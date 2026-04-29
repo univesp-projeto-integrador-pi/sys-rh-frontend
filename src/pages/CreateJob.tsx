@@ -19,7 +19,7 @@ export function CreateJob() {
     const fetchDepartments = async () => {
       try {
         const token = localStorage.getItem('user_token');
-        const response = await fetch('http://localhost:3000/api/departments', {
+        const response = await fetch('http://localhost:3000/api/v1/departments', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -57,7 +57,7 @@ export function CreateJob() {
     };
 
     try {
-      const response = await fetch('http://localhost:3000/api/jobs', {
+      const response = await fetch('http://localhost:3000/api/v1/job-positions', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

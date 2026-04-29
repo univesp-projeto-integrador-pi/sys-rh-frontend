@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Search, Briefcase, Loader2, AlertCircle } from 'lucide-react';
 import { JobCard } from '../components/JobCard';
-import { toast } from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 
 interface Job {
@@ -18,11 +17,17 @@ export function Home() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  // 🚀 Novo estado para controlar a visibilidade do banner
-  const [hasProfile, setHasProfile] = useState<boolean>(true); // Começa como true para não dar "flicker"
+  const [hasProfile, setHasProfile] = useState<boolean>(true);
 
+  // 📋 LOGS DE DIAGNÓSTICO
   const token = localStorage.getItem("user_token");
   const userJson = localStorage.getItem("logged_user");
+  
+  console.log("[Home] Estado do LocalStorage:", { 
+    temToken: !!token, 
+    temUser: !!userJson 
+  });
+
   const user = userJson ? JSON.parse(userJson) : null;
   const isAuthenticated = !!token;
   const isNotAdmin = isAuthenticated && user?.role?.toUpperCase() !== 'ADMIN';
@@ -33,28 +38,35 @@ export function Home() {
         setIsLoading(true);
 
         // 1. Buscar Vagas
-        const jobsResponse = await fetch('http://localhost:3000/api/jobs/open');
+        const jobsResponse = await fetch('http://localhost:3000/api/v1/jobs-available/open');
         const jobsData = await jobsResponse.json();
         const finalJobs = Array.isArray(jobsData) ? jobsData : (jobsData.data || []);
         setJobs(finalJobs);
 
-        // 2. Verificar Perfil (apenas se for candidato logado)
-        if (isNotAdmin) {
-          const profileResponse = await fetch('http://localhost:3000/api/candidates/me', {
+        // 2. Verificar Perfil (Apenas se logado e for candidato)
+        if (isNotAdmin && token) {
+          console.log("[Home] Verificando perfil para candidato autenticado...");
+          
+          const profileResponse = await fetch('http://localhost:3000/api/v1/candidates-external/me', {
             headers: {
               'Authorization': `Bearer ${token}`
             }
           });
 
-          // Se o status for 404, significa que o perfil de candidato NÃO existe
           if (profileResponse.status === 404) {
+            console.log("[Home] Perfil não encontrado (404).");
             setHasProfile(false);
           } else if (profileResponse.ok) {
+            console.log("[Home] Perfil encontrado.");
             setHasProfile(true);
+          } else if (profileResponse.status === 401) {
+            console.error("[Home] Erro 401: Token inválido ou expirado.");
           }
+        } else {
+          console.log("[Home] Pulo da verificação de perfil: Não autenticado ou é Admin.");
         }
       } catch (error) {
-        console.error("Erro na sincronização:", error);
+        console.error("[Home] Erro na sincronização:", error);
       } finally {
         setIsLoading(false);
       }
@@ -70,7 +82,7 @@ export function Home() {
   return (
     <div className="max-w-6xl mx-auto py-12 px-4">
       
-      {/* 🚀 Banner exibido apenas se logado, não-admin e SEM perfil completo */}
+      {/* Banner de perfil incompleto */}
       {isNotAdmin && !hasProfile && (
         <div className="mb-8 bg-amber-50 border border-amber-200 p-5 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
           <div className="flex items-center gap-3 text-amber-800">
