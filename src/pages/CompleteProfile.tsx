@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { User, Phone, ArrowRight, Loader2, GraduationCap, Building2, BookOpen, Calendar } from 'lucide-react';
 
+// ... (mantenha os imports)
+
 export function CompleteProfile() {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -14,26 +16,23 @@ export function CompleteProfile() {
     const formData = new FormData(e.currentTarget);
     const token = localStorage.getItem("user_token");
 
-    // 1. Extraímos os valores para garantir que não são nulos antes de converter
     const rawStartDate = formData.get('startDate') as string;
     const rawEndDate = formData.get('endDate') as string;
 
-    // 2. Montamos o payload estruturado exatamente como o backend espera
+    // Montamos o objeto garantindo strings puras
     const payload = {
-      fullName: formData.get('fullName'),
-      phone: formData.get('phone'),
+      fullName: String(formData.get('fullName')),
+      phone: String(formData.get('phone')),
       education: {
-        institution: formData.get('institution'),
-        degree: formData.get('degree'),
-        fieldOfStudy: formData.get('fieldOfStudy'),
-        // Convertemos para ISOString pois o Prisma/Postgres exige esse formato para campos DateTime
+        institution: String(formData.get('institution')),
+        degree: String(formData.get('degree')),
+        fieldOfStudy: String(formData.get('fieldOfStudy')),
         startDate: rawStartDate ? new Date(rawStartDate).toISOString() : null,
         endDate: rawEndDate ? new Date(rawEndDate).toISOString() : null,
       }
     };
 
-    // LOG DE SEGURANÇA: Verifique isso no F12 do navegador!
-    console.log("🚀 [FRONTEND] Enviando payload estruturado:", payload);
+    console.log("🚀 [FRONTEND] Enviando para /candidates-external:", payload);
 
     try {
       const response = await fetch('http://localhost:3000/api/v1/candidates-external', {
@@ -48,16 +47,16 @@ export function CompleteProfile() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Erro ao salvar perfil.");
+        // Se o erro for de validação (array de erros), pegamos a primeira mensagem
+        const errorMsg = Array.isArray(data) ? data[0].message : data.message;
+        throw new Error(errorMsg || "Erro ao salvar perfil.");
       }
 
-      toast.success("Perfil e formação salvos com sucesso!");
-      
-      // Pequeno delay para o usuário ver o feedback antes de ir para a Home
+      toast.success("Perfil salvo com sucesso!");
       setTimeout(() => navigate('/'), 1500);
 
     } catch (error: any) {
-      console.error("❌ [FRONTEND] Erro na requisição:", error);
+      console.error("❌ [FRONTEND] Erro:", error);
       toast.error(`Falha: ${error.message}`);
     } finally {
       setIsSubmitting(false);
