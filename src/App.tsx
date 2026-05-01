@@ -50,7 +50,8 @@ function AppContent() {
           
           {/* ROTAS ADMIN (APENAS ADMINISTRADORES) */}
           <Route element={<AdminRoute />}>
-            <Route path="/admin" element={<Navigate to="/admin/candidaturas" replace />} />
+            <Route path="/admin" element={<Navigate to="/admin/vagas" replace />} />
+            <Route path="/admin/vagas" element={<AdminUsers />} />
             <Route path="/admin/candidaturas" element={<AdminApplications />} />
             <Route path="/admin/usuarios" element={<AdminUsers />} />
             

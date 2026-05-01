@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
-import { Trash2, User, Calendar, Clock, Briefcase, ChevronDown, ChevronUp, FileText, Users, AlertCircle } from 'lucide-react';
+import { Trash2, User, Calendar, Clock, ShieldCheck, Briefcase, ChevronDown, ChevronUp, FileText, Users, AlertCircle, Plus } from 'lucide-react';
 
 interface JobApplication {
   id: string;
@@ -42,6 +42,13 @@ export default function AdminApplications() {
       setError(null);
       const token = localStorage.getItem("user_token");
 
+      const cached = sessionStorage.getItem('admin_applications');
+      if (cached) {
+        setCandidaturas(JSON.parse(cached));
+        setLoading(false);
+        return;
+      }
+
       try {
         const response = await fetch('http://localhost:3000/api/v1/job-applications', {
           headers: {
@@ -75,6 +82,7 @@ export default function AdminApplications() {
         );
 
         setCandidaturas(ordenadas);
+        sessionStorage.setItem('admin_applications', JSON.stringify(ordenadas));
       } catch (err: any) {
         setError(err.message);
         console.error("Erro ao buscar candidaturas:", err);
@@ -115,19 +123,40 @@ export default function AdminApplications() {
     <div className="p-8">
       <div className="max-w-7xl mx-auto">
         
-        <header className="mb-6 flex justify-between items-end">
+        <header className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
           <div>
-            <span className="text-teal-600 font-black text-xs uppercase tracking-[0.2em]">Painel de Controle</span>
+            <span className="text-teal-600 font-black text-[10px] uppercase tracking-[0.3em] flex items-center gap-2 mb-1 whitespace-nowrap">
+              <ShieldCheck size={13} /> Sistema de Gestão Administrativo
+            </span>
             <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">Administrativo</h1>
           </div>
-          <div className="bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
-            <span className="text-slate-500 text-xs font-bold uppercase">Inscrições: </span>
-            <span className="text-teal-600 font-black text-lg">{candidaturas.length}</span>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              to="/admin/vagas/nova"
+              className="bg-slate-900 text-white px-5 py-3 rounded-xl font-black text-[11px] uppercase tracking-widest flex items-center gap-2 hover:bg-teal-600 transition-all shadow-lg active:scale-95"
+            >
+              <Plus size={16} strokeWidth={3} /> Nova Vaga
+            </Link>
+            <div className="bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
+              <span className="text-slate-500 text-xs font-bold uppercase">Inscrições: </span>
+              <span className="text-teal-600 font-black text-lg">{candidaturas.length}</span>
+            </div>
           </div>
         </header>
 
         {/* --- NOVO SISTEMA DE ABAS --- */}
-        <div className="flex gap-8 border-b border-slate-200 mb-10">
+        <div className="flex flex-wrap gap-8 border-b border-slate-200 mb-10">
+          <Link 
+            to="/admin/vagas" 
+            className={`pb-4 text-[11px] font-black tracking-[0.2em] transition-all flex items-center gap-2 ${
+              location.pathname === '/admin/vagas' 
+              ? 'border-b-4 border-teal-500 text-teal-600' 
+              : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <Briefcase size={14} />
+            VAGAS
+          </Link>
           <Link 
             to="/admin/candidaturas" 
             className={`pb-4 text-[11px] font-black tracking-[0.2em] transition-all flex items-center gap-2 ${

@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 
 interface Department {
-  id: string | number;
+  id: string;
   name: string;
 }
 
@@ -14,7 +14,6 @@ export function CreateJob() {
   const [isSending, setIsSending] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
 
-  // 1. Busca os departamentos do banco de dados
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
@@ -26,15 +25,12 @@ export function CreateJob() {
         });
 
         const data = await response.json();
-        console.log("Resposta do Backend (Dept):", data);
-
-        // Se o backend retornar { data: [...] } ou direto o [...]
         const list = Array.isArray(data) ? data : (data.data || []);
         setDepartments(list);
       } catch (error) {
         console.error("Erro ao carregar departamentos:", error);
         toast.error("Não foi possível carregar os departamentos.");
-        setDepartments([]); // Garante que continue sendo um array para não quebrar o .map
+        setDepartments([]); 
       }
     };
 
@@ -47,17 +43,18 @@ export function CreateJob() {
 
     const formData = new FormData(e.currentTarget);
     const token = localStorage.getItem('user_token');
+    
+    const departmentId = String(formData.get('departmentId') || '');
 
-    // Monta o payload conforme sua tabela job_positions
     const payload = {
-      title: formData.get('title'),
-      description: formData.get('description'),
+      title: String(formData.get('title')),
+      description: String(formData.get('description')),
       status: 'OPEN',
-      departmentId: formData.get('departmentId'), // Aqui enviará "1" conforme sua imagem
+      departmentId,
     };
 
     try {
-      const response = await fetch('http://localhost:3000/api/v1/job-positions', {
+      const response = await fetch('http://localhost:3000/api/v1/jobs-services', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -67,14 +64,21 @@ export function CreateJob() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Erro ao criar vaga");
+        // Se a rota não existir, o Express retorna HTML, então verificamos antes de fazer o .json()
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "Erro ao criar vaga");
+        } else {
+            throw new Error(`Erro no servidor: Rota não encontrada (Cannot POST) ou inválida.`);
+        }
       }
 
       toast.success("Vaga publicada com sucesso!");
-      navigate('/'); 
+      navigate('/admin/vagas'); // Ajuste o redirecionamento conforme sua rota
     } catch (error: any) {
       toast.error(error.message);
+      console.error(error);
     } finally {
       setIsSending(false);
     }
@@ -87,11 +91,11 @@ export function CreateJob() {
     <div className="min-h-screen bg-slate-100 py-12 px-6">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl mx-auto">
         
-        <Link to="/" className="inline-flex items-center gap-2 text-slate-500 hover:text-teal-600 mb-6 transition-colors font-bold uppercase text-xs tracking-widest">
-          <ArrowLeft size={16} /> Voltar para o Mural
+        <Link to="/admin/candidaturas" className="inline-flex items-center gap-2 text-slate-500 hover:text-teal-600 mb-6 transition-colors font-bold uppercase text-xs tracking-widest">
+          <ArrowLeft size={16} /> Voltar para o Painel
         </Link>
 
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200">
+        <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200">
           <div className="bg-slate-900 p-8 text-white flex items-center gap-4">
             <div className="p-3 bg-teal-500 rounded-2xl">
               <Briefcase size={24} />
@@ -128,7 +132,7 @@ export function CreateJob() {
             <button 
               type="submit" 
               disabled={isSending}
-              className="w-full bg-slate-900 text-white font-black py-5 rounded-2xl shadow-xl hover:bg-teal-600 active:scale-[0.98] transition-all flex items-center justify-center gap-3 uppercase tracking-widest"
+              className="w-full bg-slate-900 text-white font-black py-5 rounded-2xl shadow-lg hover:bg-teal-600 active:scale-[0.98] transition-all flex items-center justify-center gap-3 uppercase tracking-widest"
             >
               {isSending ? (
                 <><Loader2 className="animate-spin" /> PROCESSANDO...</>
