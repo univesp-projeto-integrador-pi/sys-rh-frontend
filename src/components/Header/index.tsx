@@ -1,32 +1,49 @@
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, UserCheck, Loader2 } from 'lucide-react';
 import logoImg from '../../assets/logoarrastao.png';
 
 export function Header() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 1. Recupera os dados brutos do LocalStorage
+  // Estados
+  const [hasProfile, setHasProfile] = useState<boolean | null>(null);
+  const [isCheckingProfile, setIsCheckingProfile] = useState(false);
+
   const token = localStorage.getItem("user_token");
   const userJson = localStorage.getItem("logged_user");
   
-  // 2. Transforma em objeto JS (se existir)
   const user = userJson ? JSON.parse(userJson) : null;
-
-  // 3. Define as constantes de estado
   const isAuthenticated = !!token;
-  
-  // Usamos o toUpperCase() para garantir que 'admin' ou 'ADMIN' funcionem
   const userIsAdmin = user?.role?.toUpperCase() === 'ADMIN';
 
-  // 4. LOGS DE DEBUG (Abra o F12 no navegador para ver isso)
-  console.log("=== DEBUG HEADER ===");
-  console.log("Token existe?", isAuthenticated);
-  console.log("Objeto User completo:", user);
-  console.log("Role detectada:", user?.role);
-  console.log("É Admin?", userIsAdmin);
-  console.log("=====================");
+  // 🚀 Verificação de Perfil para Candidatos
+  useEffect(() => {
+    const checkProfileStatus = async () => {
+      if (isAuthenticated && !userIsAdmin) {
+        try {
+          setIsCheckingProfile(true);
+          const response = await fetch('http://localhost:3000/api/v1/candidates-external/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          
+          if (response.ok) {
+            setHasProfile(true);
+          } else if (response.status === 404) {
+            setHasProfile(false);
+          }
+        } catch (error) {
+          console.error("Erro ao verificar perfil na Header:", error);
+        } finally {
+          setIsCheckingProfile(false);
+        }
+      }
+    };
+
+    checkProfileStatus();
+  }, [isAuthenticated, userIsAdmin, token, location.pathname]); // Re-checa se mudar de página (importante após salvar perfil)
 
   const getDisplayName = () => {
     if (user?.name) {
@@ -41,7 +58,6 @@ export function Header() {
     localStorage.removeItem("user_token");
     localStorage.removeItem("user_name");
     localStorage.removeItem("logged_user");
-    
     navigate("/login");
     window.location.reload();
   };
@@ -92,14 +108,31 @@ export function Header() {
 
           {isAuthenticated ? (
             <div className="flex items-center gap-6">
-              {/* BOTÃO ADMIN - SÓ APARECE SE A CONSTANTE userIsAdmin FOR TRUE */}
-              {userIsAdmin && (
+              
+              {/* BOTÃO DINÂMICO (ADMIN vs PERFIL) */}
+              {userIsAdmin ? (
                 <Link
                   to="/admin/usuarios"
                   className="flex items-center gap-2 bg-teal-500/20 hover:bg-teal-500 border border-teal-500/50 px-3 py-1.5 rounded text-[10px] font-black text-teal-400 hover:text-white transition-all duration-300 group"
                 >
                   <ShieldCheck size={14} className="group-hover:rotate-12 transition-transform" />
                   ADMIN
+                </Link>
+              ) : (
+                <Link
+                  to={hasProfile ? "/meu-perfil" : "/completar-perfil"}
+                  className={`flex items-center gap-2 border px-3 py-1.5 rounded text-[10px] font-black transition-all duration-300 group ${
+                    hasProfile 
+                    ? "bg-teal-500/20 border-teal-500/50 text-teal-400 hover:bg-teal-500 hover:text-white" 
+                    : "bg-amber-500/20 border-amber-500/50 text-amber-400 hover:bg-amber-500 hover:text-white"
+                  }`}
+                >
+                  {isCheckingProfile ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <UserCheck size={14} className="group-hover:scale-110 transition-transform" />
+                  )}
+                  {hasProfile ? "MEU PERFIL" : "COMPLETAR PERFIL"}
                 </Link>
               )}
 

@@ -1,10 +1,23 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link, useLocation } from 'react-router-dom'; // Importados para a navegação
-import { Trash2, User, Calendar, Clock, Briefcase, ChevronDown, ChevronUp, FileText, Users } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { Trash2, User, Calendar, Clock, ShieldCheck, Briefcase, ChevronDown, ChevronUp, FileText, Users, AlertCircle, Plus } from 'lucide-react';
+
+interface JobApplication {
+  id: string;
+  candidate?: {
+    fullName: string;
+    email: string;
+  };
+  position?: {
+    title: string;
+  };
+  currentStage: string;
+  appliedAt: string;
+}
 
 interface Candidatura {
-  id: number;
+  id: string;
   vagaTitulo: string;
   nome: string;
   email: string;
@@ -18,27 +31,91 @@ interface Candidatura {
 
 export default function AdminApplications() {
   const [candidaturas, setCandidaturas] = useState<Candidatura[]>([]);
-  const [expandedId, setExpandedId] = useState<number | null>(null);
-  const location = useLocation(); // Para identificar a aba ativa
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const location = useLocation();
 
   useEffect(() => {
-    const dados = JSON.parse(localStorage.getItem('@arrastao:candidaturas') || '[]');
-    const ordenados = dados.sort((a: any, b: any) => 
-      new Date(b.dataInscricao).getTime() - new Date(a.dataInscricao).getTime()
-    );
-    setCandidaturas(ordenados);
+    const fetchApplications = async () => {
+      setLoading(true);
+      setError(null);
+      const token = localStorage.getItem("user_token");
+
+      const cached = sessionStorage.getItem('admin_applications');
+      if (cached) {
+        setCandidaturas(JSON.parse(cached));
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch('http://localhost:3000/api/v1/job-applications', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) throw new Error('Erro ao carregar candidaturas');
+
+        const data: JobApplication[] = await response.json();
+        console.log("Candidaturas recebidas:", data);
+
+        // Mapear dados da API para o formato esperado
+        const candidaturasMapeadas: Candidatura[] = data.map((app) => ({
+          id: app.id,
+          vagaTitulo: app.position?.title || 'Vaga excluída',
+          nome: app.candidate?.fullName || 'N/A',
+          email: app.candidate?.email || 'N/A',
+          telefone: '',
+          formacao: '',
+          area: '',
+          turno: '',
+          experiencia: '',
+          dataInscricao: app.appliedAt
+        }));
+
+        // Ordenar por data mais recente
+        const ordenadas = candidaturasMapeadas.sort((a, b) =>
+          new Date(b.dataInscricao).getTime() - new Date(a.dataInscricao).getTime()
+        );
+
+        setCandidaturas(ordenadas);
+        sessionStorage.setItem('admin_applications', JSON.stringify(ordenadas));
+      } catch (err: any) {
+        setError(err.message);
+        console.error("Erro ao buscar candidaturas:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchApplications();
   }, []);
 
-  const toggleExpand = (id: number) => {
+  const toggleExpand = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
   };
 
-  const handleDelete = (id: number) => {
-    if (window.confirm("Deseja remover esta candidatura permanentemente?")) {
-      const novasCandidaturas = candidaturas.filter(c => c.id !== id);
-      localStorage.setItem('@arrastao:candidaturas', JSON.stringify(novasCandidaturas));
-      setCandidaturas(novasCandidaturas);
-      if (expandedId === id) setExpandedId(null);
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Deseja remover esta candidatura permanentemente?")) return;
+
+    try {
+      const token = localStorage.getItem("user_token");
+      const response = await fetch(`http://localhost:3000/api/v1/job-applications/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        setCandidaturas(prev => prev.filter(c => c.id !== id));
+        if (expandedId === id) setExpandedId(null);
+      } else {
+        alert('Erro ao excluir candidatura');
+      }
+    } catch (err) {
+      alert('Erro ao excluir candidatura');
     }
   };
 
@@ -46,19 +123,40 @@ export default function AdminApplications() {
     <div className="p-8">
       <div className="max-w-7xl mx-auto">
         
-        <header className="mb-6 flex justify-between items-end">
+        <header className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
           <div>
-            <span className="text-teal-600 font-black text-xs uppercase tracking-[0.2em]">Painel de Controle</span>
+            <span className="text-teal-600 font-black text-[10px] uppercase tracking-[0.3em] flex items-center gap-2 mb-1 whitespace-nowrap">
+              <ShieldCheck size={13} /> Sistema de Gestão Administrativo
+            </span>
             <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">Administrativo</h1>
           </div>
-          <div className="bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
-            <span className="text-slate-500 text-xs font-bold uppercase">Inscrições: </span>
-            <span className="text-teal-600 font-black text-lg">{candidaturas.length}</span>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              to="/admin/vagas/nova"
+              className="bg-slate-900 text-white px-5 py-3 rounded-xl font-black text-[11px] uppercase tracking-widest flex items-center gap-2 hover:bg-teal-600 transition-all shadow-lg active:scale-95"
+            >
+              <Plus size={16} strokeWidth={3} /> Nova Vaga
+            </Link>
+            <div className="bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
+              <span className="text-slate-500 text-xs font-bold uppercase">Inscrições: </span>
+              <span className="text-teal-600 font-black text-lg">{candidaturas.length}</span>
+            </div>
           </div>
         </header>
 
         {/* --- NOVO SISTEMA DE ABAS --- */}
-        <div className="flex gap-8 border-b border-slate-200 mb-10">
+        <div className="flex flex-wrap gap-8 border-b border-slate-200 mb-10">
+          <Link 
+            to="/admin/vagas" 
+            className={`pb-4 text-[11px] font-black tracking-[0.2em] transition-all flex items-center gap-2 ${
+              location.pathname === '/admin/vagas' 
+              ? 'border-b-4 border-teal-500 text-teal-600' 
+              : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <Briefcase size={14} />
+            VAGAS
+          </Link>
           <Link 
             to="/admin/candidaturas" 
             className={`pb-4 text-[11px] font-black tracking-[0.2em] transition-all flex items-center gap-2 ${
@@ -83,7 +181,17 @@ export default function AdminApplications() {
           </Link>
         </div>
 
-        {candidaturas.length === 0 ? (
+        {error && (
+          <div className="mb-6 bg-red-50 text-red-600 p-4 rounded-xl border border-red-100 flex gap-2 items-center">
+            <AlertCircle size={18} /> {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="bg-white rounded-3xl p-20 text-center border-2 border-dashed border-slate-200">
+            <p className="text-slate-400 font-medium italic">Carregando candidaturas...</p>
+          </div>
+        ) : candidaturas.length === 0 ? (
           <div className="bg-white rounded-3xl p-20 text-center border-2 border-dashed border-slate-200">
             <p className="text-slate-400 font-medium italic">Nenhuma candidatura registrada no momento.</p>
           </div>

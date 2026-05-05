@@ -1,207 +1,359 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Users, FileText, Trash2, ShieldCheck, Shield, AlertCircle } from 'lucide-react';
-import { motion } from 'framer-motion';
+import {
+  Users, FileText, Trash2, ShieldCheck, Shield,
+  AlertCircle, Briefcase, Plus, Mail,
+  GraduationCap, Building2, UsersRound
+} from 'lucide-react';
 
-// Interface alinhada ao seu Schema Prisma
+// ─── Tokens de estilo compartilhados ─────────────────────────────────────────
+const TH  = 'px-5 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 whitespace-nowrap';
+const TD  = 'px-5 py-4 align-middle';
+const ROW = 'border-b border-slate-50 hover:bg-slate-50/60 transition-colors';
+
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface UserData {
   id: string;
   name: string;
   email: string;
-  role: 'ADMIN' | 'USER' | 'RECRUITER' | 'VIEWER'; 
+  role: 'ADMIN' | 'USER' | 'RECRUITER' | 'VIEWER';
   createdAt: string;
 }
 
+interface ApplicationData {
+  id: string;
+  candidate?: {
+    fullName: string;
+    email: string;
+    education?: { degree: string; fieldOfStudy: string };
+  };
+  position?: { title: string };
+  currentStage: string;
+  createdAt: string;
+}
+
+interface JobData {
+  id: string;
+  title: string;
+  status: string;
+  createdAt: string;
+  department?: { name: string };
+  _count?: { applications: number };
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function statusColor(stage: string) {
+  const s = stage.toUpperCase();
+  if (s.includes('APROVADO') || s.includes('OPEN'))
+    return 'bg-emerald-50 text-emerald-600 border-emerald-100';
+  if (s.includes('REJEITADO') || s.includes('CLOSED'))
+    return 'bg-red-50 text-red-600 border-red-100';
+  return 'bg-blue-50 text-blue-600 border-blue-100';
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('pt-BR');
+}
+
+// ─── Componente ──────────────────────────────────────────────────────────────
 export function AdminUsers() {
-  const [users, setUsers] = useState<UserData[]>([]);
+  const [users, setUsers]               = useState<UserData[]>([]);
+  const [applications, setApplications] = useState<ApplicationData[]>([]);
+  const [jobs, setJobs]                 = useState<JobData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError]     = useState<string | null>(null);
+
   const location = useLocation();
 
-  const loadUsers = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const token = localStorage.getItem("user_token");
+  const isJobsTab         = location.pathname.includes('vagas') && !location.pathname.includes('nova');
+  const isApplicationsTab = location.pathname.includes('candidaturas');
+  const isUsersTab        = location.pathname.includes('usuarios');
 
-      const response = await fetch('http://localhost:3000/api/users', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        if (response.status === 403) throw new Error('Acesso negado: Somente administradores podem ver esta lista.');
-        throw new Error('Falha ao buscar usuários no banco de dados.');
-      }
-
-      const data = await response.json();
-      
-      // Garante que estamos lidando com um array, independente da estrutura da resposta
-      const usersArray = Array.isArray(data) ? data : (data.users || []);
-
-      const sorted = usersArray.sort((a: UserData, b: UserData) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-      
-      setUsers(sorted);
-    } catch (err: any) {
-      console.error("Erro ao carregar usuários:", err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // ── Fetch — sem cache, sempre busca dados frescos ao trocar de aba ──────────
   useEffect(() => {
-    loadUsers();
-  }, []);
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      const token = localStorage.getItem('user_token');
 
-  const handleRemoveUser = async (id: string) => {
-    const confirmDelete = window.confirm("Atenção: Esta ação removerá o acesso do usuário permanentemente. Confirmar?");
-    if (!confirmDelete) return;
+      let endpoint = '';
+      if (isApplicationsTab) endpoint = 'job-applications';
+      else if (isUsersTab)   endpoint = 'users';
+      else if (isJobsTab)    endpoint = 'jobs-services';
 
+      if (!endpoint) { setLoading(false); return; }
+
+      try {
+        const res = await fetch(`http://localhost:3000/api/v1/${endpoint}`, {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (!res.ok) throw new Error('Erro ao carregar dados do servidor.');
+        const data = await res.json();
+
+        if (isApplicationsTab) setApplications(Array.isArray(data) ? data : []);
+        else if (isUsersTab)   setUsers(Array.isArray(data) ? data : (data.users || []));
+        else if (isJobsTab)    setJobs(Array.isArray(data) ? data : []);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Erro ao carregar dados do servidor.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [location.pathname]);
+
+  // ── Delete ─────────────────────────────────────────────────────────────────
+  const handleRemove = async (id: string, type: 'user' | 'app' | 'job') => {
+    if (!window.confirm('Confirmar exclusão permanente? Esta ação não pode ser desfeita.')) return;
     try {
-      const token = localStorage.getItem("user_token");
-      const response = await fetch(`http://localhost:3000/api/users/${id}`, { 
+      const token = localStorage.getItem('user_token');
+      const map   = { user: 'users', app: 'job-applications', job: 'jobs-services' };
+      const res   = await fetch(`http://localhost:3000/api/v1/${map[type]}/${id}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      if (!response.ok) throw new Error('Não foi possível excluir o usuário.');
-
-      setUsers((prev) => prev.filter((user) => user.id !== id));
-    } catch (err: any) {
-      alert(err.message);
+      if (!res.ok) throw new Error('Erro ao excluir o registro.');
+      if (type === 'app')  setApplications(p => p.filter(a => a.id !== id));
+      if (type === 'user') setUsers(p => p.filter(u => u.id !== id));
+      if (type === 'job')  setJobs(p => p.filter(j => j.id !== id));
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Erro ao excluir o registro.');
     }
   };
 
+  // ── Tabs ───────────────────────────────────────────────────────────────────
+  const tabs = [
+    { label: 'Vagas',        to: '/admin/vagas',        icon: <Briefcase size={13} />, active: isJobsTab         },
+    { label: 'Candidaturas', to: '/admin/candidaturas', icon: <FileText  size={13} />, active: isApplicationsTab },
+    { label: 'Usuários',     to: '/admin/usuarios',     icon: <Users     size={13} />, active: isUsersTab        },
+  ];
+
+  const isEmpty =
+    (!loading && isJobsTab         && jobs.length === 0) ||
+    (!loading && isApplicationsTab && applications.length === 0) ||
+    (!loading && isUsersTab        && users.length === 0);
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="p-8">
+    <div className="p-8 min-h-screen bg-[#F8FAFC]">
       <div className="max-w-7xl mx-auto">
-        
-        <header className="mb-6 flex justify-between items-end">
-          <div>
-            <span className="text-teal-600 font-black text-xs uppercase tracking-[0.2em]">Painel de Controle</span>
-            <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">Administrativo</h1>
+
+        {/* HEADER — completamente estático, não muda entre abas */}
+        <header className="mb-8 flex flex-row justify-between items-end">
+          <div className="min-w-max">
+            <span className="text-teal-600 font-black text-[10px] uppercase tracking-[0.3em] flex items-center gap-2 mb-1 whitespace-nowrap">
+              <ShieldCheck size={13} /> Sistema de Gestão Administrativo
+            </span>
+            <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">
+              Administrativo
+            </h1>
           </div>
-          <div className="bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm flex items-center gap-2">
-            <span className="text-slate-500 text-xs font-bold uppercase">Total DB: </span>
-            <span className="text-teal-600 font-black text-lg leading-none">{users.length}</span>
-          </div>
+
+          <Link
+            to="/admin/vagas/nova"
+            className="bg-slate-900 text-white px-5 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest flex items-center gap-2 hover:bg-teal-600 transition-colors shadow-md"
+          >
+            <Plus size={14} strokeWidth={3} /> Nova Vaga
+          </Link>
         </header>
 
-        <div className="flex gap-8 border-b border-slate-200 mb-10">
-          <Link 
-            to="/admin/candidaturas" 
-            className={`pb-4 text-[11px] font-black tracking-[0.2em] transition-all flex items-center gap-2 ${
-              location.pathname.includes('candidaturas') 
-              ? 'border-b-4 border-teal-500 text-teal-600' 
-              : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <FileText size={14} />
-            CANDIDATURAS
-          </Link>
-          <Link 
-            to="/admin/usuarios" 
-            className={`pb-4 text-[11px] font-black tracking-[0.2em] transition-all flex items-center gap-2 ${
-              location.pathname.includes('usuarios') 
-              ? 'border-b-4 border-teal-500 text-teal-600' 
-              : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <Users size={14} />
-            USUÁRIOS DO SISTEMA
-          </Link>
-        </div>
+        {/* ABAS — border-b puro, sem framer-motion */}
+        <nav className="flex items-center border-b border-slate-200 mb-8">
+          {tabs.map(tab => (
+            <Link
+              key={tab.to}
+              to={tab.to}
+              className={[
+                'flex items-center gap-2 px-5 py-3 -mb-px',
+                'text-[11px] font-black tracking-[0.2em] uppercase',
+                'border-b-2 transition-colors duration-150',
+                tab.active
+                  ? 'text-teal-600 border-teal-500'
+                  : 'text-slate-400 border-transparent hover:text-slate-600',
+              ].join(' ')}
+            >
+              {tab.icon}
+              {tab.label}
+            </Link>
+          ))}
+        </nav>
 
+        {/* ERRO */}
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-red-600 p-4 rounded-2xl flex items-center gap-3 font-bold text-sm">
-            <AlertCircle size={20} />
-            {error}
-            <button onClick={loadUsers} className="ml-auto underline decoration-2 underline-offset-4">Tentar novamente</button>
+          <div className="mb-6 bg-red-50 text-red-600 p-4 rounded-xl border border-red-100 flex gap-3 items-center">
+            <AlertCircle size={18} className="shrink-0" />
+            <p className="text-sm font-semibold">{error}</p>
           </div>
         )}
 
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"
-        >
+        {/* TABELA */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-slate-50 border-b border-slate-200">
+
+            <thead className="bg-slate-50/60 border-b border-slate-100">
               <tr>
-                <th className="p-5 font-black text-slate-400 uppercase text-[10px] tracking-widest">Nome / E-mail</th>
-                <th className="p-5 font-black text-slate-400 uppercase text-[10px] tracking-widest">Cargo</th>
-                <th className="p-5 font-black text-slate-400 uppercase text-[10px] tracking-widest">Data de Cadastro</th>
-                <th className="p-5 font-black text-slate-400 uppercase text-[10px] tracking-widest text-center">Ações</th>
+                {isJobsTab && <>
+                  <th className={TH}>Título da Vaga</th>
+                  <th className={TH}>Departamento</th>
+                  <th className={`${TH} text-center`}>Candidatos</th>
+                  <th className={TH}>Status</th>
+                </>}
+                {isApplicationsTab && <>
+                  <th className={TH}>Candidato</th>
+                  <th className={TH}>Vaga</th>
+                  <th className={TH}>Educação</th>
+                  <th className={TH}>Status</th>
+                </>}
+                {isUsersTab && <>
+                  <th className={TH}>Usuário</th>
+                  <th className={TH}>Permissão</th>
+                </>}
+                <th className={`${TH} text-center`}>Data</th>
+                <th className={`${TH} text-center`}>Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
-              {loading ? (
+
+            <tbody>
+              {/* LOADING */}
+              {loading && (
                 <tr>
-                  <td colSpan={4} className="p-20 text-center text-slate-400 font-medium italic">
+                  <td colSpan={6} className="py-20 text-center">
                     <div className="flex flex-col items-center gap-3">
-                      <div className="w-8 h-8 border-4 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
-                      Consultando banco de dados PostgreSQL...
+                      <div className="w-7 h-7 border-[3px] border-teal-500 border-t-transparent rounded-full animate-spin" />
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        Sincronizando...
+                      </span>
                     </div>
                   </td>
                 </tr>
-              ) : users.length === 0 && !error ? (
-                <tr>
-                  <td colSpan={4} className="p-20 text-center text-slate-400 font-medium italic">
-                    Nenhum registro encontrado no banco.
+              )}
+
+              {/* VAGAS */}
+              {!loading && isJobsTab && jobs.map(job => (
+                <tr key={job.id} className={ROW}>
+                  <td className={TD}>
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-slate-900 text-white rounded-lg shrink-0">
+                        <Briefcase size={13} />
+                      </div>
+                      <span className="text-sm font-bold text-slate-900">{job.title}</span>
+                    </div>
+                  </td>
+                  <td className={TD}>
+                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase">
+                      <Building2 size={13} className="text-teal-500 shrink-0" />
+                      {job.department?.name || 'Geral'}
+                    </div>
+                  </td>
+                  <td className={`${TD} text-center`}>
+                    <span className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold">
+                      <UsersRound size={13} className="text-teal-600" />
+                      {job._count?.applications ?? 0}
+                    </span>
+                  </td>
+                  <td className={TD}>
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider ${statusColor(job.status)}`}>
+                      {job.status}
+                    </span>
+                  </td>
+                  <td className={`${TD} text-center text-[11px] font-bold text-slate-500 uppercase`}>
+                    {formatDate(job.createdAt)}
+                  </td>
+                  <td className={`${TD} text-center`}>
+                    <button onClick={() => handleRemove(job.id, 'job')} className="text-slate-300 hover:text-red-500 transition-colors p-2 rounded-lg hover:bg-red-50">
+                      <Trash2 size={16} />
+                    </button>
                   </td>
                 </tr>
-              ) : (
-                users.map((user) => (
-                  <tr key={user.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="p-5">
-                      <div className="flex flex-col">
-                        <span className="text-slate-800 font-bold text-sm">{user.name}</span>
-                        <span className="text-slate-400 text-xs">{user.email}</span>
+              ))}
+
+              {/* CANDIDATURAS */}
+              {!loading && isApplicationsTab && applications.map(app => (
+                <tr key={app.id} className={ROW}>
+                  <td className={TD}>
+                    <div className="text-sm font-bold text-slate-900">{app.candidate?.fullName}</div>
+                    <div className="flex items-center gap-1 mt-0.5 text-[11px] text-slate-400 font-medium">
+                      <Mail size={11} /> {app.candidate?.email}
+                    </div>
+                  </td>
+                  <td className={TD}>
+                    <span className="text-[11px] font-bold text-slate-500 uppercase">{app.position?.title}</span>
+                  </td>
+                  <td className={TD}>
+                    {app.candidate?.education ? (
+                      <div>
+                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-800 uppercase">
+                          <GraduationCap size={13} className="text-teal-600 shrink-0" />
+                          {app.candidate.education.degree}
+                        </div>
+                        <div className="mt-0.5 text-[10px] italic text-slate-400 font-medium pl-[18px]">
+                          {app.candidate.education.fieldOfStudy}
+                        </div>
                       </div>
-                    </td>
-                    <td className="p-5">
-                      {user.role === 'ADMIN' ? (
-                        <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-[10px] font-black bg-indigo-50 text-indigo-600 border border-indigo-100">
-                          <ShieldCheck size={12} /> ADMIN
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-[10px] font-black bg-slate-50 text-slate-500 border border-slate-100">
-                          <Shield size={12} /> USUÁRIO
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-5">
-                      <div className="flex flex-col">
-                        <span className="text-slate-500 text-[11px] font-bold">
-                          {new Date(user.createdAt).toLocaleDateString('pt-BR')}
-                        </span>
-                        <span className="text-slate-400 text-[10px]">
-                          às {new Date(user.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="p-5 text-center">
-                      <button 
-                        onClick={() => handleRemoveUser(user.id)}
-                        className="bg-red-50 text-red-400 p-2.5 rounded-xl hover:bg-red-500 hover:text-white transition-all cursor-pointer"
-                        title="Deletar permanentemente"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                    ) : (
+                      <span className="text-[11px] text-slate-300 font-medium">Não informado</span>
+                    )}
+                  </td>
+                  <td className={TD}>
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider ${statusColor(app.currentStage)}`}>
+                      {app.currentStage}
+                    </span>
+                  </td>
+                  <td className={`${TD} text-center text-[11px] font-bold text-slate-500 uppercase`}>
+                    {formatDate(app.createdAt)}
+                  </td>
+                  <td className={`${TD} text-center`}>
+                    <button onClick={() => handleRemove(app.id, 'app')} className="text-slate-300 hover:text-red-500 transition-colors p-2 rounded-lg hover:bg-red-50">
+                      <Trash2 size={16} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+
+              {/* USUÁRIOS */}
+              {!loading && isUsersTab && users.map(user => (
+                <tr key={user.id} className={ROW}>
+                  <td className={TD}>
+                    <div className="text-sm font-bold text-slate-900">{user.name}</div>
+                    <div className="mt-0.5 text-[11px] text-slate-400 font-medium">{user.email}</div>
+                  </td>
+                  <td className={TD}>
+                    <span className={[
+                      'inline-flex items-center gap-1.5 py-1.5 px-3 rounded-xl',
+                      'text-[10px] font-black tracking-wider border',
+                      user.role === 'ADMIN'
+                        ? 'bg-indigo-50 text-indigo-600 border-indigo-100'
+                        : 'bg-slate-100 text-slate-500 border-slate-200',
+                    ].join(' ')}>
+                      {user.role === 'ADMIN' ? <ShieldCheck size={13} /> : <Shield size={13} />}
+                      {user.role}
+                    </span>
+                  </td>
+                  <td className={`${TD} text-center text-[11px] font-bold text-slate-500 uppercase`}>
+                    {formatDate(user.createdAt)}
+                  </td>
+                  <td className={`${TD} text-center`}>
+                    <button onClick={() => handleRemove(user.id, 'user')} className="text-slate-300 hover:text-red-500 transition-colors p-2 rounded-lg hover:bg-red-50">
+                      <Trash2 size={16} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+
+              {/* VAZIO */}
+              {isEmpty && (
+                <tr>
+                  <td colSpan={6} className="py-20 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    Nenhum registro encontrado.
+                  </td>
+                </tr>
               )}
             </tbody>
+
           </table>
-        </motion.div>
+        </div>
+
       </div>
     </div>
   );

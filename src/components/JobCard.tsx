@@ -1,49 +1,32 @@
-import { Link } from 'react-router-dom';
+import { Briefcase } from 'lucide-react';
+import { useNavigate } from 'react-router-dom'; // 1. Importar o hook
 
-interface JobCardProps {
-  id: number;
-  title: string;     // Ex: Assistente
-  role: string;      // Ex: Assistente de Almoxarifado
-  company: string;   // Ex: MASP
-  location: string;  // Ex: São Paulo - SP
-  deadline: string;  // Ex: 09/05/2026
-  tag: string;       // Ex: SERVIÇOS ESPECIALIZADOS
-  contractType: string; // Ex: CLT
-}
+export function JobCard({ job }: { job: any }) {
+  const navigate = useNavigate(); // 2. Inicializar o navigate
 
-export function JobCard({ id, title, role, company, location, deadline, tag, contractType }: JobCardProps) {
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm mb-6 border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-      
-      <div className="flex-1">
-        <div className="mb-2">
-          <h2 className="text-2xl font-semibold text-teal-600 leading-tight">{title}</h2>
-          <h3 className="text-lg text-teal-600">{role}</h3>
+    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col h-full">
+      <div className="flex items-start justify-between mb-4">
+        <div className="bg-teal-50 p-3 rounded-xl text-teal-600">
+          <Briefcase size={24} />
         </div>
-
-        <div className="space-y-1 text-slate-600 text-sm">
-          <p className="font-bold text-slate-800">{company}</p>
-          <p>{location} • <span className="font-medium text-slate-500">{contractType}</span></p>
-          <p className="text-xs uppercase tracking-wider text-slate-400">Increva-se até: {deadline}</p>
-        </div>
-
-        <div className="mt-6">
-          <Link 
-            to={`/vaga/${id}`} 
-            className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-8 rounded transition-all inline-block"
-          >
-            Ver vaga
-          </Link>
-        </div>
-      </div>
-
-      {/* A TAG CINZA (Igual à referência da Cultura) */}
-      <div className="hidden md:block">
-        <span className="bg-slate-200 text-slate-600 text-[10px] font-bold px-3 py-1 rounded uppercase tracking-widest">
-          {tag}
+        <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-1 rounded-md uppercase">
+          {job.department?.name || 'Geral'}
         </span>
       </div>
       
+      <h3 className="text-xl font-bold text-slate-800 mb-2">{job.title}</h3>
+      <p className="text-slate-500 text-sm line-clamp-3 mb-6 flex-grow">
+        {job.description}
+      </p>
+      
+      {/* 3. Adicionar o onClick chamando a rota correta */}
+      <button 
+        onClick={() => navigate(`/vaga/${job.id}`)}
+        className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold text-sm hover:bg-teal-600 transition-colors"
+      >
+        Ver Detalhes
+      </button>
     </div>
   );
 }

@@ -1,187 +1,155 @@
-import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, Loader2 } from 'lucide-react';
-import { allJobs } from '../data/jobs';
+import { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { CheckCircle, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 export function ApplicationForm() {
-  const { id } = useParams();
-  const vaga = allJobs.find(j => j.id === Number(id));
+  const { id } = useParams(); // ID da vaga (UUID)
+  const navigate = useNavigate();
 
-  // ESTADOS DO FORMULÁRIO
+  // ESTADOS
   const [isSending, setIsSending] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [formacaoSelecionada, setFormacaoSelecionada] = useState('');
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [candidateProfile, setCandidateProfile] = useState<any>(null);
 
-  if (!vaga) return <div className="p-20 text-center font-bold text-slate-400 uppercase tracking-widest">Vaga não encontrada</div>;
+  // 1. Busca o perfil do candidato para saber se ele pode se candidatar
+  useEffect(() => {
+    const checkProfile = async () => {
+      const token = localStorage.getItem("user_token");
+      if (!token) {
+        toast.error("Faça login para continuar.");
+        return navigate('/login');
+      }
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+      try {
+        const response = await fetch('http://localhost:3000/api/v1/candidates-external/me', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.status === 404) {
+          // Usuário logado mas sem perfil de candidato
+          setCandidateProfile(null);
+        } else if (response.ok) {
+          const data = await response.json();
+          setCandidateProfile(data);
+        }
+      } catch (err) {
+        console.error("Erro ao verificar perfil:", err);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+
+    checkProfile();
+  }, [id, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSending(true);
 
-    const formData = new FormData(e.currentTarget);
-    
-    // O PAYLOAD AGORA ESTÁ IDÊNTICO AO SEU MODEL 'CANDIDATE' NO PRISMA
-    const payload = {
-      fullName: formData.get('fullName'),   // Antes: nome
-      email: formData.get('email'),
-      phone: formData.get('phone'),         // Antes: telefone
-      education: formData.get('education'), // Antes: formacao
-      area: formData.get('area') || 'N/A',
-      experience: formData.get('experience'), // Antes: experiencia
-      shift: formData.get('shift'),         // Antes: turno
-      positionId: id,                       // ID da vaga (importante para JobApplication)
-      dataInicio: formData.get('dataInicio'), // Informação extra
-    };
+    const token = localStorage.getItem("user_token");
 
-    console.log("Payload pronto para o Backend:", payload);
+    try {
+      const response = await fetch('http://localhost:3000/api/v1/job-applications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ positionId: id }), // O backend blindado só precisa disso!
+      });
 
-    // SIMULAÇÃO DE ENVIO (Substituiremos pelo axios.post em breve)
-    await new Promise(resolve => setTimeout(resolve, 2000));
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (response.status === 409) throw new Error("Você já se candidatou para esta vaga!");
+        throw new Error(errorData.message || "Erro ao processar candidatura.");
+      }
 
-    // Persistência temporária enquanto não conectamos o axios
-    const candidaturasAntigas = JSON.parse(localStorage.getItem('@arrastao:candidaturas') || '[]');
-    localStorage.setItem('@arrastao:candidaturas', JSON.stringify([...candidaturasAntigas, payload]));
-
-    setIsSending(false);
-    setIsSuccess(true);
+      setIsSuccess(true);
+      toast.success("Candidatura enviada com sucesso!");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setIsSending(false);
+    }
   };
 
-  const inputStyle = "w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:bg-white outline-none transition-all text-slate-700 disabled:opacity-50";
-  const labelStyle = "block text-[10px] font-black text-slate-500 uppercase tracking-[0.15em] mb-2";
+  // TELA DE CARREGAMENTO
+  if (isLoadingProfile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="animate-spin text-teal-500" size={40} />
+      </div>
+    );
+  }
 
+  // TELA CASO NÃO TENHA PERFIL DE CANDIDATO
+  if (!candidateProfile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white p-8 rounded-3xl shadow-xl text-center border border-amber-100">
+          <AlertCircle className="mx-auto text-amber-500 mb-4" size={48} />
+          <h2 className="text-2xl font-black text-slate-900 uppercase">Perfil Incompleto</h2>
+          <p className="text-slate-500 mt-4">
+            Para se candidatar, precisamos que você complete seus dados de contato (Nome e Telefone).
+          </p>
+          <button 
+            onClick={() => navigate('/completar-perfil')} 
+            className="mt-8 w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-teal-600 transition-all"
+          >
+            Completar Perfil agora
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // TELA DE SUCESSO
   if (isSuccess) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center px-6">
-        <motion.div 
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="max-w-md w-full bg-white p-10 rounded-3xl shadow-2xl border border-slate-100 text-center"
-        >
-          <motion.div 
-            initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: 'spring' }}
-            className="w-20 h-20 bg-teal-100 text-teal-600 rounded-full flex items-center justify-center mx-auto mb-6"
-          >
-            <CheckCircle size={40} />
-          </motion.div>
-          <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Inscrição Confirmada!</h2>
-          <p className="text-slate-500 mt-4 leading-relaxed">
-            Sua candidatura para <strong>{vaga.role}</strong> foi registrada com sucesso.
-          </p>
-          <div className="mt-8">
-            <Link to="/" className="block w-full bg-teal-500 text-white font-black py-4 rounded-xl hover:bg-teal-600 transition-all uppercase tracking-widest text-sm">
-              Voltar para Vagas
-            </Link>
-          </div>
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-md w-full bg-white p-10 rounded-3xl shadow-2xl text-center">
+          <CheckCircle className="text-teal-500 mx-auto mb-6" size={60} />
+          <h2 className="text-3xl font-black text-slate-900">Tudo pronto!</h2>
+          <p className="text-slate-500 mt-4">Sua candidatura foi registrada e o RH já pode visualizar seu perfil.</p>
+          <Link to="/" className="block mt-8 w-full bg-teal-500 text-white font-black py-4 rounded-xl uppercase tracking-widest text-sm">Voltar ao Início</Link>
         </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 py-12 px-6">
-      <motion.div 
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-4xl mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200"
-      >
-        <div className="bg-slate-900 p-10 text-white">
-          <span className="text-teal-400 text-xs font-black uppercase tracking-widest">Inscrição Online</span>
-          <h1 className="text-4xl font-black uppercase tracking-tighter mt-2">{vaga.role}</h1>
+    <div className="min-h-screen bg-slate-50 py-12 px-6">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl mx-auto bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="bg-slate-900 p-8 text-white">
+          <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-400 hover:text-white mb-4 text-xs font-bold uppercase transition-colors">
+            <ArrowLeft size={16} /> Voltar
+          </button>
+          <h1 className="text-3xl font-black uppercase">Confirmar Candidatura</h1>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-10 md:p-16 space-y-12">
-          {/* SEÇÃO 1: DADOS PESSOAIS */}
-          <section className="space-y-6">
-            <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight border-b border-slate-100 pb-2">1. Dados Pessoais</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="md:col-span-2">
-                <label className={labelStyle}>Nome Completo</label>
-                <input name="fullName" type="text" required className={inputStyle} disabled={isSending} />
-              </div>
-              <div>
-                <label className={labelStyle}>E-mail</label>
-                <input name="email" type="email" required className={inputStyle} disabled={isSending} />
-              </div>
-              <div>
-                <label className={labelStyle}>Telefone</label>
-                <input name="phone" type="tel" required placeholder="(11) 99999-9999" className={inputStyle} disabled={isSending} />
-              </div>
-            </div>
-          </section>
-
-          {/* SEÇÃO 2: FORMAÇÃO E EXPERIÊNCIA */}
-          <section className="space-y-6">
-            <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight border-b border-slate-100 pb-2">2. Formação e Experiência</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className={['superior_inc', 'superior', 'pos'].includes(formacaoSelecionada) ? "md:col-span-1" : "md:col-span-2"}>
-                <label className={labelStyle}>Grau de Formação</label>
-                <select 
-                  name="education"
-                  required 
-                  className={inputStyle}
-                  value={formacaoSelecionada}
-                  onChange={(e) => setFormacaoSelecionada(e.target.value)}
-                  disabled={isSending}
-                >
-                  <option value="">Selecione...</option>
-                  <option value="medio">Ensino Médio</option>
-                  <option value="tecnico">Ensino Técnico</option>
-                  <option value="superior_inc">Superior Incompleto</option>
-                  <option value="superior">Superior Completo</option>
-                  <option value="pos">Pós-graduação / MBA</option>
-                </select>
-              </div>
-
-              <AnimatePresence>
-                {['superior_inc', 'superior', 'pos'].includes(formacaoSelecionada) && (
-                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="md:col-span-1">
-                    <label className={labelStyle}>Área de Formação / Curso</label>
-                    <input name="area" type="text" required className={inputStyle} disabled={isSending} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <div className="md:col-span-2">
-                <label className={labelStyle}>Resumo da Experiência</label>
-                <textarea name="experience" rows={4} required className={`${inputStyle} resize-none`} disabled={isSending}></textarea>
-              </div>
-            </div>
-          </section>
-
-          {/* SEÇÃO 3: DISPONIBILIDADE */}
-          <section className="space-y-6">
-            <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight border-b border-slate-100 pb-2">3. Disponibilidade</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className={labelStyle}>Turno Disponível</label>
-                <select name="shift" required className={inputStyle} disabled={isSending}>
-                  <option value="">Selecione...</option>
-                  <option value="manha">Manhã</option>
-                  <option value="tarde">Tarde</option>
-                  <option value="noite">Noite</option>
-                  <option value="integral">Integral</option>
-                </select>
-              </div>
-              <div>
-                <label className={labelStyle}>Data de Início</label>
-                <input name="dataInicio" type="date" required className={inputStyle} disabled={isSending} />
-              </div>
-            </div>
-          </section>
-
-          <div className="pt-10">
-            <button 
-              type="submit" 
-              disabled={isSending}
-              className="w-full bg-teal-500 text-white font-black py-5 rounded-2xl shadow-xl transition-all cursor-pointer hover:bg-teal-600 disabled:bg-slate-300 flex items-center justify-center gap-3 uppercase tracking-widest"
-            >
-              {isSending ? (
-                <><Loader2 className="animate-spin" /> PROCESSANDO...</>
-              ) : "FINALIZAR CANDIDATURA"}
-            </button>
+        <div className="p-8 space-y-6">
+          <div className="bg-teal-50 p-6 rounded-2xl border border-teal-100">
+            <h3 className="text-teal-800 font-bold mb-2">Dados do Candidato</h3>
+            <p className="text-sm text-teal-700"><strong>Nome:</strong> {candidateProfile.fullName}</p>
+            <p className="text-sm text-teal-700"><strong>E-mail:</strong> {candidateProfile.email}</p>
+            <p className="text-sm text-teal-700"><strong>Telefone:</strong> {candidateProfile.phone || 'Não informado'}</p>
           </div>
-        </form>
+
+          <p className="text-slate-500 text-sm leading-relaxed">
+            Ao clicar no botão abaixo, os dados acima e o seu currículo cadastrado serão enviados para a equipe de recrutamento desta vaga.
+          </p>
+
+          <button 
+            onClick={handleSubmit}
+            disabled={isSending}
+            className="w-full bg-teal-500 text-white font-black py-5 rounded-2xl shadow-lg hover:bg-teal-600 disabled:bg-slate-300 transition-all uppercase tracking-widest flex items-center justify-center gap-3"
+          >
+            {isSending ? <><Loader2 className="animate-spin" /> Processando...</> : "Confirmar Minha Inscrição"}
+          </button>
+        </div>
       </motion.div>
     </div>
   );

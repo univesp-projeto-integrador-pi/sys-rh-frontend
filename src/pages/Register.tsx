@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { CheckCircle } from 'lucide-react'; // Certifique-se de ter o lucide-react instalado
+import { CheckCircle, X } from 'lucide-react';
+import logo from '../assets/logoarrastao.png'; // Caminho da sua logo
 
 export function Register() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showSuccess, setShowSuccess] = useState(false); // Estado para a mensagem bonita
+  const [showSuccess, setShowSuccess] = useState(false);
   const navigate = useNavigate();
-
   const [error, setError] = useState('');
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -16,7 +16,7 @@ export function Register() {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:3000/api/auth/register', {
+      const response = await fetch('http://localhost:3000/api/v1/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -30,7 +30,6 @@ export function Register() {
       }
 
       setShowSuccess(true);
-
       setTimeout(() => {
         navigate('/login');
       }, 2500);
@@ -40,9 +39,8 @@ export function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen w-full bg-slate-50 flex items-center justify-center p-6 relative overflow-hidden">
       
-      {/* MENSAGEM DE SUCESSO (TOAST ANIMADO) */}
       {showSuccess && (
         <div className="fixed top-10 left-1/2 -translate-x-1/2 z-50 animate-bounce">
           <div className="bg-teal-500 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border-2 border-teal-400">
@@ -55,7 +53,21 @@ export function Register() {
         </div>
       )}
 
-      <div className={`bg-white p-10 rounded-3xl shadow-xl w-full max-w-md border border-slate-100 transition-all duration-500 ${showSuccess ? 'opacity-50 scale-95 blur-sm' : ''}`}>
+      <div className={`bg-white p-12 rounded-3xl shadow-xl w-full max-w-lg border border-slate-100 relative transition-all duration-500 ${showSuccess ? 'opacity-50 scale-95 blur-sm' : ''}`}>
+        
+        <Link 
+          to="/" 
+          className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-all z-10"
+          title="Voltar para o início"
+        >
+          <X size={24} />
+        </Link>
+
+        {/* LOGO ACIMA DO TÍTULO */}
+        <div className="flex justify-center mb-6">
+          <img src={logo} alt="Logo Arrastão" className="h-16 w-auto object-contain" />
+        </div>
+
         <h2 className="text-3xl font-black mb-2 text-center text-slate-800 tracking-tight">Criar Conta</h2>
         <p className="text-center text-slate-500 mb-8 font-medium">Preencha os dados abaixo</p>
 
@@ -65,6 +77,7 @@ export function Register() {
               {error}
             </div>
           )}
+          
           <div>
             <label className="block text-xs font-black text-slate-500 mb-2 uppercase tracking-widest">Nome Completo</label>
             <input 
@@ -72,7 +85,7 @@ export function Register() {
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full p-4 rounded-2xl bg-slate-50 border-2 border-transparent outline-none focus:border-teal-500 focus:bg-white transition-all placeholder:text-slate-300"
+              className="w-full p-4 rounded-2xl bg-slate-50 border-2 border-transparent outline-none focus:border-teal-500 focus:bg-white transition-all text-lg"
               placeholder="Digite seu nome"
             />
           </div>
@@ -84,7 +97,7 @@ export function Register() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-4 rounded-2xl bg-slate-50 border-2 border-transparent outline-none focus:border-teal-500 focus:bg-white transition-all placeholder:text-slate-300"
+              className="w-full p-4 rounded-2xl bg-slate-50 border-2 border-transparent outline-none focus:border-teal-500 focus:bg-white transition-all text-lg"
               placeholder="exemplo@rh.com"
             />
           </div>
@@ -97,7 +110,7 @@ export function Register() {
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-4 rounded-2xl bg-slate-50 border-2 border-transparent outline-none focus:border-teal-500 focus:bg-white transition-all placeholder:text-slate-300"
+              className="w-full p-4 rounded-2xl bg-slate-50 border-2 border-transparent outline-none focus:border-teal-500 focus:bg-white transition-all text-lg"
               placeholder="Mínimo 6 caracteres"
             />
           </div>
@@ -105,7 +118,7 @@ export function Register() {
           <button 
             type="submit" 
             disabled={showSuccess}
-            className="w-full bg-teal-500 text-white font-black py-5 rounded-2xl shadow-lg shadow-teal-200 transition-all duration-300 hover:bg-teal-600 hover:-translate-y-1 active:scale-[0.98] uppercase tracking-widest"
+            className="w-full bg-teal-500 text-white font-black py-5 mt-4 rounded-2xl shadow-lg shadow-teal-200 transition-all duration-300 hover:bg-teal-600 hover:-translate-y-1 text-lg uppercase tracking-widest"
           >
             FINALIZAR CADASTRO
           </button>
