@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { User, Phone, Mail, GraduationCap, MapPin, Loader2 } from 'lucide-react';
+import { User, Phone, Mail, GraduationCap, Loader2 } from 'lucide-react';
 
 export function Profile() {
   const [candidate, setCandidate] = useState<any>(null);
