@@ -35,7 +35,7 @@ export function CompleteProfile() {
     console.log("🚀 [FRONTEND] Enviando para /candidates-external:", payload);
 
     try {
-      const response = await fetch('http://localhost:3000/api/v1/candidates-external', {
+      const response = await fetch('import.meta.env.VITE_API_URL/api/v1/candidates-external', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

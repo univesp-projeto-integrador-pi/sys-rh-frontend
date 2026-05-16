@@ -84,7 +84,7 @@ export function AdminUsers() {
       if (!endpoint) { setLoading(false); return; }
 
       try {
-        const res = await fetch(`http://localhost:3000/api/v1/${endpoint}`, {
+        const res = await fetch(`import.meta.env.VITE_API_URL/api/v1/${endpoint}`, {
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         });
         if (!res.ok) throw new Error('Erro ao carregar dados do servidor.');
@@ -109,7 +109,7 @@ export function AdminUsers() {
     try {
       const token = localStorage.getItem('user_token');
       const map   = { user: 'users', app: 'job-applications', job: 'jobs-services' };
-      const res   = await fetch(`http://localhost:3000/api/v1/${map[type]}/${id}`, {
+      const res   = await fetch(`import.meta.env.VITE_API_URL/api/v1/${map[type]}/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
