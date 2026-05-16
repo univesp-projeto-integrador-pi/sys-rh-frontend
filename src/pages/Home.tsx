@@ -38,7 +38,7 @@ export function Home() {
         setIsLoading(true);
 
         // 1. Buscar Vagas
-        const jobsResponse = await fetch('http://localhost:3000/api/v1/jobs-available/open');
+        const jobsResponse = await fetch('import.meta.env.VITE_API_URL/api/v1/jobs-available/open');
         const jobsData = await jobsResponse.json();
         const finalJobs = Array.isArray(jobsData) ? jobsData : (jobsData.data || []);
         setJobs(finalJobs);
@@ -47,7 +47,7 @@ export function Home() {
         if (isNotAdmin && token) {
           console.log("[Home] Verificando perfil para candidato autenticado...");
           
-          const profileResponse = await fetch('http://localhost:3000/api/v1/candidates-external/me', {
+          const profileResponse = await fetch('import.meta.env.VITE_API_URL/api/v1/candidates-external/me', {
             headers: {
               'Authorization': `Bearer ${token}`
             }

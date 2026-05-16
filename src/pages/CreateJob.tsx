@@ -18,7 +18,7 @@ export function CreateJob() {
     const fetchDepartments = async () => {
       try {
         const token = localStorage.getItem('user_token');
-        const response = await fetch('http://localhost:3000/api/v1/departments', {
+        const response = await fetch('import.meta.env.VITE_API_URL/api/v1/departments', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -54,7 +54,7 @@ export function CreateJob() {
     };
 
     try {
-      const response = await fetch('http://localhost:3000/api/v1/jobs-services', {
+      const response = await fetch('import.meta.env.VITE_API_URL/api/v1/jobs-services', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

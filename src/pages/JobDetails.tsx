@@ -25,7 +25,7 @@ export function JobDetails() {
         setIsLoading(true);
         console.log(`[JobDetails] Solicitando detalhes da vaga ID: ${id}`);
         
-        const response = await fetch(`http://localhost:3000/api/v1/jobs-available/${id}`);
+        const response = await fetch(`import.meta.env.VITE_API_URL/api/v1/jobs-available/${id}`);
         
         if (!response.ok) {
           const errorData = await response.json();
