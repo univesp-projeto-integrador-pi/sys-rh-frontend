@@ -25,7 +25,7 @@ export function Header() {
       if (isAuthenticated && !userIsAdmin) {
         try {
           setIsCheckingProfile(true);
-          const response = await fetch('${import.meta.env.VITE_API_URL}/api/v1/candidates-external/me', {
+          const response = await fetch('import.meta.env.VITE_API_URL/api/v1/candidates-external/me', {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           
