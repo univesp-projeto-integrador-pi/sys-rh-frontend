@@ -10,9 +10,8 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminRoute } from './components/AdminRoute'; 
 import { Register } from './pages/Register';
 import { CompleteProfile } from './pages/CompleteProfile';
-
-// Import da nova página
-import { CreateJob } from './pages/CreateJob'; // Certifique-se que o nome do arquivo/export está correto
+import { CreateJob } from './pages/CreateJob'; 
+import MyApplications from './pages/MyApplications';
 
 // Páginas Administrativas
 import AdminApplications from './pages/AdminApplications';
@@ -21,17 +20,16 @@ import { Profile } from './pages/Profile';
 
 function AppContent() {
   const location = useLocation();
-
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
 
   return (
-    <div className={`min-h-screen flex flex-col bg-slate-50 ${isAuthPage ? 'overflow-hidden h-screen' : ''}`}>
+    <div className={`min-h-screen flex flex-col ${isAuthPage ? 'overflow-hidden h-screen' : ''}`}>
       {!isAuthPage && <Header />} 
       
-      <main className={`flex-grow px-4 md:px-0 ${
+      <main className={`flex-grow flex flex-col ${
         isAuthPage 
           ? 'flex items-center justify-center' 
-          : 'pt-16 pb-20'
+          : ''
       }`}>
         <Routes>
           {/* ROTAS PÚBLICAS */}
@@ -45,7 +43,7 @@ function AppContent() {
           <Route element={<ProtectedRoute />}>
             <Route path="/completar-perfil" element={<CompleteProfile />} />
             <Route path="/meu-perfil" element={<Profile />} />
-            {/* Espaço para rotas comuns */}
+            <Route path="/minhas-candidaturas" element={<MyApplications />} />
           </Route>
           
           {/* ROTAS ADMIN (APENAS ADMINISTRADORES) */}
@@ -54,8 +52,6 @@ function AppContent() {
             <Route path="/admin/vagas" element={<AdminUsers />} />
             <Route path="/admin/candidaturas" element={<AdminApplications />} />
             <Route path="/admin/usuarios" element={<AdminUsers />} />
-            
-            {/* NOVA ROTA PARA CRIAR VAGAS */}
             <Route path="/admin/vagas/nova" element={<CreateJob />} />
           </Route>
           

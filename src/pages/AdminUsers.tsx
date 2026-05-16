@@ -3,7 +3,8 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   Users, FileText, Trash2, ShieldCheck, Shield,
   AlertCircle, Briefcase, Plus, Mail,
-  GraduationCap, Building2, UsersRound
+  GraduationCap, Building2, UsersRound,
+  Lock, Unlock
 } from 'lucide-react';
 
 // ─── Tokens de estilo compartilhados ─────────────────────────────────────────
@@ -29,7 +30,8 @@ interface ApplicationData {
   };
   position?: { title: string };
   currentStage: string;
-  createdAt: string;
+  appliedAt?: string; // Tornado opcional
+  createdAt?: string; // Adicionado fallback
 }
 
 interface JobData {
@@ -43,16 +45,21 @@ interface JobData {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function statusColor(stage: string) {
-  const s = stage.toUpperCase();
-  if (s.includes('APROVADO') || s.includes('OPEN'))
+  const s = stage?.toUpperCase() || '';
+  if (s.includes('APROVADO') || s.includes('OPEN') || s.includes('ABERTO'))
     return 'bg-emerald-50 text-emerald-600 border-emerald-100';
-  if (s.includes('REJEITADO') || s.includes('CLOSED'))
-    return 'bg-red-50 text-red-600 border-red-100';
+  if (s.includes('REJEITADO') || s.includes('CLOSED') || s.includes('FECHADO'))
+    return 'bg-rose-50 text-rose-600 border-rose-100';
   return 'bg-blue-50 text-blue-600 border-blue-100';
 }
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('pt-BR');
+function formatDate(iso?: string) {
+  if (!iso) return '-';
+  try {
+    return new Date(iso).toLocaleDateString('pt-BR');
+  } catch {
+    return '-';
+  }
 }
 
 // ─── Componente ──────────────────────────────────────────────────────────────
@@ -84,16 +91,31 @@ export function AdminUsers() {
       if (!endpoint) { setLoading(false); return; }
 
       try {
+        console.log(`[DEBUG] Iniciando requisição para: /api/v1/${endpoint}`);
         const res = await fetch(`http://localhost:3000/api/v1/${endpoint}`, {
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         });
+        
         if (!res.ok) throw new Error('Erro ao carregar dados do servidor.');
+        
         const data = await res.json();
+        console.log(`[DEBUG] Resposta bruta da API (${endpoint}):`, data);
 
-        if (isApplicationsTab) setApplications(Array.isArray(data) ? data : []);
-        else if (isUsersTab)   setUsers(Array.isArray(data) ? data : (data.users || []));
-        else if (isJobsTab)    setJobs(Array.isArray(data) ? data : []);
+        if (isApplicationsTab) {
+          const parsedApplications = Array.isArray(data) ? data : (data.applications || data.data || []);
+          console.log('[DEBUG] Candidaturas validadas para o state:', parsedApplications);
+          setApplications(parsedApplications);
+        } 
+        else if (isUsersTab) {
+          const parsedUsers = Array.isArray(data) ? data : (data.users || data.data || []);
+          setUsers(parsedUsers);
+        } 
+        else if (isJobsTab) {
+          const parsedJobs = Array.isArray(data) ? data : (data.jobs || data.data || []);
+          setJobs(parsedJobs);
+        }
       } catch (err: unknown) {
+        console.error('[DEBUG] Erro capturado no fetch:', err);
         setError(err instanceof Error ? err.message : 'Erro ao carregar dados do servidor.');
       } finally {
         setLoading(false);
@@ -101,7 +123,40 @@ export function AdminUsers() {
     };
 
     fetchData();
-  }, [location.pathname]);
+  }, [location.pathname, isApplicationsTab, isUsersTab, isJobsTab]);
+
+  // ── Alterar Status da Vaga (Abrir / Fechar) ────────────────────────────────
+  const handleToggleJobStatus = async (id: string, currentStatus: string) => {
+    const isCurrentlyOpen = currentStatus.toUpperCase() === 'OPEN' || currentStatus.toUpperCase() === 'ABERTO';
+    const newStatus = isCurrentlyOpen ? 'CLOSED' : 'OPEN';
+    
+    if (!window.confirm(`Deseja realmente ${isCurrentlyOpen ? 'fechar' : 'reabrir'} esta vaga?`)) return;
+    
+    try {
+      const token = localStorage.getItem('user_token');
+      const res = await fetch(`http://localhost:3000/api/v1/jobs-services/${id}`, {
+        method: 'PUT', 
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify({ status: newStatus }) 
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Erro ao atualizar o status da vaga.');
+      }
+      
+      setJobs(prevJobs => 
+        prevJobs.map(job => 
+          job.id === id ? { ...job, status: newStatus } : job
+        )
+      );
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Erro ao atualizar o status.');
+    }
+  };
 
   // ── Delete ─────────────────────────────────────────────────────────────────
   const handleRemove = async (id: string, type: 'user' | 'app' | 'job') => {
@@ -124,7 +179,7 @@ export function AdminUsers() {
 
   // ── Tabs ───────────────────────────────────────────────────────────────────
   const tabs = [
-    { label: 'Vagas',        to: '/admin/vagas',        icon: <Briefcase size={13} />, active: isJobsTab         },
+    { label: 'Vagas',        to: '/admin/vagas',        icon: <Briefcase size={13} />, active: isJobsTab        },
     { label: 'Candidaturas', to: '/admin/candidaturas', icon: <FileText  size={13} />, active: isApplicationsTab },
     { label: 'Usuários',     to: '/admin/usuarios',     icon: <Users     size={13} />, active: isUsersTab        },
   ];
@@ -139,7 +194,7 @@ export function AdminUsers() {
     <div className="p-8 min-h-screen bg-[#F8FAFC]">
       <div className="max-w-7xl mx-auto">
 
-        {/* HEADER — completamente estático, não muda entre abas */}
+        {/* HEADER */}
         <header className="mb-8 flex flex-row justify-between items-end">
           <div className="min-w-max">
             <span className="text-teal-600 font-black text-[10px] uppercase tracking-[0.3em] flex items-center gap-2 mb-1 whitespace-nowrap">
@@ -158,7 +213,7 @@ export function AdminUsers() {
           </Link>
         </header>
 
-        {/* ABAS — border-b puro, sem framer-motion */}
+        {/* ABAS */}
         <nav className="flex items-center border-b border-slate-200 mb-8">
           {tabs.map(tab => (
             <Link
@@ -230,55 +285,76 @@ export function AdminUsers() {
               )}
 
               {/* VAGAS */}
-              {!loading && isJobsTab && jobs.map(job => (
-                <tr key={job.id} className={ROW}>
-                  <td className={TD}>
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-slate-900 text-white rounded-lg shrink-0">
-                        <Briefcase size={13} />
+              {!loading && isJobsTab && jobs.map(job => {
+                const isOpen = job.status.toUpperCase() === 'OPEN' || job.status.toUpperCase() === 'ABERTO';
+                return (
+                  <tr key={job.id} className={ROW}>
+                    <td className={TD}>
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-slate-900 text-white rounded-lg shrink-0">
+                          <Briefcase size={13} />
+                        </div>
+                        <span className="text-sm font-bold text-slate-900">{job.title}</span>
                       </div>
-                      <span className="text-sm font-bold text-slate-900">{job.title}</span>
-                    </div>
-                  </td>
-                  <td className={TD}>
-                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase">
-                      <Building2 size={13} className="text-teal-500 shrink-0" />
-                      {job.department?.name || 'Geral'}
-                    </div>
-                  </td>
-                  <td className={`${TD} text-center`}>
-                    <span className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold">
-                      <UsersRound size={13} className="text-teal-600" />
-                      {job._count?.applications ?? 0}
-                    </span>
-                  </td>
-                  <td className={TD}>
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider ${statusColor(job.status)}`}>
-                      {job.status}
-                    </span>
-                  </td>
-                  <td className={`${TD} text-center text-[11px] font-bold text-slate-500 uppercase`}>
-                    {formatDate(job.createdAt)}
-                  </td>
-                  <td className={`${TD} text-center`}>
-                    <button onClick={() => handleRemove(job.id, 'job')} className="text-slate-300 hover:text-red-500 transition-colors p-2 rounded-lg hover:bg-red-50">
-                      <Trash2 size={16} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className={TD}>
+                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase">
+                        <Building2 size={13} className="text-teal-500 shrink-0" />
+                        {job.department?.name || 'Geral'}
+                      </div>
+                    </td>
+                    <td className={`${TD} text-center`}>
+                      <span className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold">
+                        <UsersRound size={13} className="text-teal-600" />
+                        {job._count?.applications ?? 0}
+                      </span>
+                    </td>
+                    <td className={TD}>
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider ${statusColor(job.status)}`}>
+                        {job.status === 'OPEN' ? 'ABERTA' : job.status === 'CLOSED' ? 'FECHADA' : job.status}
+                      </span>
+                    </td>
+                    <td className={`${TD} text-center text-[11px] font-bold text-slate-500 uppercase`}>
+                      {formatDate(job.createdAt)}
+                    </td>
+                    <td className={`${TD} text-center`}>
+                      <div className="flex items-center justify-center gap-1">
+                        <button 
+                          onClick={() => handleToggleJobStatus(job.id, job.status)} 
+                          title={isOpen ? "Fechar Vaga" : "Reabrir Vaga"}
+                          className={`p-2 rounded-lg transition-colors ${
+                            isOpen 
+                            ? 'text-slate-400 hover:text-amber-500 hover:bg-amber-50' 
+                            : 'text-slate-400 hover:text-emerald-500 hover:bg-emerald-50'
+                          }`}
+                        >
+                          {isOpen ? <Lock size={16} /> : <Unlock size={16} />}
+                        </button>
+                        <button 
+                          onClick={() => handleRemove(job.id, 'job')} 
+                          title="Excluir Vaga"
+                          className="text-slate-400 hover:text-red-500 transition-colors p-2 rounded-lg hover:bg-red-50"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
 
               {/* CANDIDATURAS */}
-              {!loading && isApplicationsTab && applications.map(app => (
-                <tr key={app.id} className={ROW}>
+              {/* CORREÇÃO DO KEY: Usando o index como fallback no key previne que IDs duplicados no banco local quebrem a tabela */}
+              {!loading && isApplicationsTab && applications.map((app, index) => (
+                <tr key={`${app.id}-${index}`} className={ROW}>
                   <td className={TD}>
-                    <div className="text-sm font-bold text-slate-900">{app.candidate?.fullName}</div>
+                    <div className="text-sm font-bold text-slate-900">{app.candidate?.fullName || 'Nome não informado'}</div>
                     <div className="flex items-center gap-1 mt-0.5 text-[11px] text-slate-400 font-medium">
-                      <Mail size={11} /> {app.candidate?.email}
+                      <Mail size={11} /> {app.candidate?.email || 'Email não informado'}
                     </div>
                   </td>
                   <td className={TD}>
-                    <span className="text-[11px] font-bold text-slate-500 uppercase">{app.position?.title}</span>
+                    <span className="text-[11px] font-bold text-slate-500 uppercase">{app.position?.title || 'Vaga não encontrada'}</span>
                   </td>
                   <td className={TD}>
                     {app.candidate?.education ? (
@@ -296,12 +372,13 @@ export function AdminUsers() {
                     )}
                   </td>
                   <td className={TD}>
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider ${statusColor(app.currentStage)}`}>
-                      {app.currentStage}
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider ${statusColor(app.currentStage || 'PENDENTE')}`}>
+                      {app.currentStage || 'PENDENTE'}
                     </span>
                   </td>
                   <td className={`${TD} text-center text-[11px] font-bold text-slate-500 uppercase`}>
-                    {formatDate(app.createdAt)}
+                    {/* CORREÇÃO DA DATA: Lê o appliedAt, se for null/undefined, usa o createdAt */}
+                    {formatDate(app.appliedAt || app.createdAt)}
                   </td>
                   <td className={`${TD} text-center`}>
                     <button onClick={() => handleRemove(app.id, 'app')} className="text-slate-300 hover:text-red-500 transition-colors p-2 rounded-lg hover:bg-red-50">
