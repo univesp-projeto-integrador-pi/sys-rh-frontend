@@ -2,7 +2,7 @@ import axios from "axios";
 
 // 1. Configuração da URL Base com a nova versão v1
 const api = axios.create({
-  baseURL: "baseURL: import.meta.env.VITE_API_URL", // Adicionado /v1
+  baseURL: import.meta.env.VITE_API_URL, // Adicionado /v1
   withCredentials: true, // Importante para o CSRF e Cookies que você já usa
   headers: {
     "Content-Type": "application/json",

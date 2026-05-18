@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, UserCheck, Loader2 } from 'lucide-react';
-import logoImg from '../../assets/logoarrastao.png';
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { ShieldCheck, UserCheck, Loader2 } from "lucide-react";
+import logoImg from "../../assets/logoarrastao.png";
 
 export function Header() {
   const navigate = useNavigate();
@@ -14,10 +14,10 @@ export function Header() {
 
   const token = localStorage.getItem("user_token");
   const userJson = localStorage.getItem("logged_user");
-  
+
   const user = userJson ? JSON.parse(userJson) : null;
   const isAuthenticated = !!token;
-  const userIsAdmin = user?.role?.toUpperCase() === 'ADMIN';
+  const userIsAdmin = user?.role?.toUpperCase() === "ADMIN";
 
   // 🚀 Verificação de Perfil para Candidatos
   useEffect(() => {
@@ -25,10 +25,13 @@ export function Header() {
       if (isAuthenticated && !userIsAdmin) {
         try {
           setIsCheckingProfile(true);
-          const response = await fetch('http://localhost:3000/api/v1/candidates-external/me', {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          
+          const response = await fetch(
+            `${import.meta.env.VITE_API_URL}/candidates-external/me`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
+
           if (response.ok) {
             setHasProfile(true);
           } else if (response.status === 404) {
@@ -47,7 +50,7 @@ export function Header() {
 
   const getDisplayName = () => {
     if (user?.name) {
-      return user.name.split(' ')[0];
+      return user.name.split(" ")[0];
     }
     return "Usuário";
   };
@@ -63,39 +66,58 @@ export function Header() {
   };
 
   const navLinks = [
-    { label: 'INÍCIO', url: 'https://www.arrastao.org.br' },
-    { label: 'SOBRE', url: 'https://www.arrastao.org.br/sobre' },
-    { label: 'PROJETOS', url: 'https://www.arrastao.org.br/projetos' },
-    { label: 'VAGAS', url: '/', isInternal: true },
-    { label: 'CONTATO', url: 'https://www.arrastao.org.br/contato' },
+    { label: "INÍCIO", url: "https://www.arrastao.org.br" },
+    { label: "SOBRE", url: "https://www.arrastao.org.br/sobre" },
+    { label: "PROJETOS", url: "https://www.arrastao.org.br/projetos" },
+    { label: "VAGAS", url: "/", isInternal: true },
+    { label: "CONTATO", url: "https://www.arrastao.org.br/contato" },
   ];
 
   return (
     <div
       className="relative w-full bg-cover bg-center font-sans overflow-hidden shadow-lg"
       style={{
-        backgroundImage: `url('https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=2000')`
+        backgroundImage: `url('https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=2000')`,
       }}
     >
       <div className="absolute inset-0 bg-black/50 z-0"></div>
 
       <nav className="relative z-10 max-w-7xl mx-auto px-6 py-4 flex items-center justify-between text-white border-b border-white/10">
         <Link to="/" className="flex items-center gap-3 group">
-          <img src={logoImg} alt="Logo" className="w-24 h-auto object-contain transition-transform duration-300 group-hover:scale-105" />
+          <img
+            src={logoImg}
+            alt="Logo"
+            className="w-24 h-auto object-contain transition-transform duration-300 group-hover:scale-105"
+          />
         </Link>
 
         <div className="hidden lg:flex items-center gap-10 text-[13px] font-bold tracking-[0.1em]">
           {navLinks.map((link, index) => {
-            const isVagas = link.label === 'VAGAS';
+            const isVagas = link.label === "VAGAS";
             return (
-              <motion.div key={link.label} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}>
+              <motion.div
+                key={link.label}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
                 {link.isInternal ? (
-                  <Link to={link.url} className={`relative py-2 transition-all duration-300 cursor-pointer ${isVagas ? 'text-teal-400' : 'hover:text-teal-400'} group/link`}>
+                  <Link
+                    to={link.url}
+                    className={`relative py-2 transition-all duration-300 cursor-pointer ${isVagas ? "text-teal-400" : "hover:text-teal-400"} group/link`}
+                  >
                     {link.label}
-                    <span className={`absolute bottom-0 left-0 h-[2px] bg-teal-400 transition-all duration-300 ${isVagas ? 'w-full' : 'w-0 group-hover/link:w-full'}`}></span>
+                    <span
+                      className={`absolute bottom-0 left-0 h-[2px] bg-teal-400 transition-all duration-300 ${isVagas ? "w-full" : "w-0 group-hover/link:w-full"}`}
+                    ></span>
                   </Link>
                 ) : (
-                  <a href={link.url} target="_blank" rel="noreferrer" className="relative py-2 transition-all duration-300 cursor-pointer hover:text-teal-400 group/link">
+                  <a
+                    href={link.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="relative py-2 transition-all duration-300 cursor-pointer hover:text-teal-400 group/link"
+                  >
                     {link.label}
                     <span className="absolute bottom-0 left-0 w-0 h-[2px] bg-teal-400 transition-all duration-300 group-hover/link:w-full"></span>
                   </a>
@@ -108,29 +130,34 @@ export function Header() {
 
           {isAuthenticated ? (
             <div className="flex items-center gap-6">
-              
               {/* BOTÃO DINÂMICO (ADMIN vs PERFIL) */}
               {userIsAdmin ? (
                 <Link
                   to="/admin/usuarios"
                   className="flex items-center gap-2 bg-teal-500/20 hover:bg-teal-500 border border-teal-500/50 px-3 py-1.5 rounded text-[10px] font-black text-teal-400 hover:text-white transition-all duration-300 group"
                 >
-                  <ShieldCheck size={14} className="group-hover:rotate-12 transition-transform" />
+                  <ShieldCheck
+                    size={14}
+                    className="group-hover:rotate-12 transition-transform"
+                  />
                   ADMIN
                 </Link>
               ) : (
                 <Link
                   to={hasProfile ? "/meu-perfil" : "/completar-perfil"}
                   className={`flex items-center gap-2 border px-3 py-1.5 rounded text-[10px] font-black transition-all duration-300 group ${
-                    hasProfile 
-                    ? "bg-teal-500/20 border-teal-500/50 text-teal-400 hover:bg-teal-500 hover:text-white" 
-                    : "bg-amber-500/20 border-amber-500/50 text-amber-400 hover:bg-amber-500 hover:text-white"
+                    hasProfile
+                      ? "bg-teal-500/20 border-teal-500/50 text-teal-400 hover:bg-teal-500 hover:text-white"
+                      : "bg-amber-500/20 border-amber-500/50 text-amber-400 hover:bg-amber-500 hover:text-white"
                   }`}
                 >
                   {isCheckingProfile ? (
                     <Loader2 size={14} className="animate-spin" />
                   ) : (
-                    <UserCheck size={14} className="group-hover:scale-110 transition-transform" />
+                    <UserCheck
+                      size={14}
+                      className="group-hover:scale-110 transition-transform"
+                    />
                   )}
                   {hasProfile ? "MEU PERFIL" : "COMPLETAR PERFIL"}
                 </Link>
@@ -138,7 +165,10 @@ export function Header() {
 
               <div className="flex flex-col items-end">
                 <span className="text-teal-400 lowercase italic text-[11px] font-medium">
-                  olá, <strong className="uppercase not-italic font-black">{userName}</strong>
+                  olá,{" "}
+                  <strong className="uppercase not-italic font-black">
+                    {userName}
+                  </strong>
                 </span>
                 <button
                   onClick={handleLogout}
@@ -170,14 +200,24 @@ export function Header() {
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="text-white text-5xl md:text-7xl font-black uppercase tracking-tighter text-center"
           >
-            {location.pathname === '/' ? (
-              <>Oportunidades <br /> <span className="text-teal-400">em Aberto</span></>
-            ) : location.pathname.includes('/admin') ? (
-              <>Painel <br /> <span className="text-teal-400">Administrativo</span></>
-            ) : location.pathname.includes('/vaga') ? (
-              <>Detalhes da <br /> <span className="text-teal-400">Vaga</span></>
+            {location.pathname === "/" ? (
+              <>
+                Oportunidades <br />{" "}
+                <span className="text-teal-400">em Aberto</span>
+              </>
+            ) : location.pathname.includes("/admin") ? (
+              <>
+                Painel <br />{" "}
+                <span className="text-teal-400">Administrativo</span>
+              </>
+            ) : location.pathname.includes("/vaga") ? (
+              <>
+                Detalhes da <br /> <span className="text-teal-400">Vaga</span>
+              </>
             ) : (
-              <>Área do <br /> <span className="text-teal-400">Candidato</span></>
+              <>
+                Área do <br /> <span className="text-teal-400">Candidato</span>
+              </>
             )}
           </motion.h1>
         </AnimatePresence>
