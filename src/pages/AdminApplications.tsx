@@ -1,7 +1,20 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Link, useLocation } from 'react-router-dom';
-import { Trash2, User, Calendar, Clock, ShieldCheck, Briefcase, ChevronDown, ChevronUp, FileText, Users, AlertCircle, Plus } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Link, useLocation } from "react-router-dom";
+import {
+  Trash2,
+  User,
+  Calendar,
+  Clock,
+  ShieldCheck,
+  Briefcase,
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  Users,
+  AlertCircle,
+  Plus,
+} from "lucide-react";
 
 interface JobApplication {
   id: string;
@@ -42,7 +55,7 @@ export default function AdminApplications() {
       setError(null);
       const token = localStorage.getItem("user_token");
 
-      const cached = sessionStorage.getItem('admin_applications');
+      const cached = sessionStorage.getItem("admin_applications");
       if (cached) {
         setCandidaturas(JSON.parse(cached));
         setLoading(false);
@@ -50,14 +63,17 @@ export default function AdminApplications() {
       }
 
       try {
-        const response = await fetch('import.meta.env.VITE_API_URL/api/v1/job-applications', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}/job-applications`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          },
+        );
 
-        if (!response.ok) throw new Error('Erro ao carregar candidaturas');
+        if (!response.ok) throw new Error("Erro ao carregar candidaturas");
 
         const data: JobApplication[] = await response.json();
         console.log("Candidaturas recebidas:", data);
@@ -65,24 +81,26 @@ export default function AdminApplications() {
         // Mapear dados da API para o formato esperado
         const candidaturasMapeadas: Candidatura[] = data.map((app) => ({
           id: app.id,
-          vagaTitulo: app.position?.title || 'Vaga excluída',
-          nome: app.candidate?.fullName || 'N/A',
-          email: app.candidate?.email || 'N/A',
-          telefone: '',
-          formacao: '',
-          area: '',
-          turno: '',
-          experiencia: '',
-          dataInscricao: app.appliedAt
+          vagaTitulo: app.position?.title || "Vaga excluída",
+          nome: app.candidate?.fullName || "N/A",
+          email: app.candidate?.email || "N/A",
+          telefone: "",
+          formacao: "",
+          area: "",
+          turno: "",
+          experiencia: "",
+          dataInscricao: app.appliedAt,
         }));
 
         // Ordenar por data mais recente
-        const ordenadas = candidaturasMapeadas.sort((a, b) =>
-          new Date(b.dataInscricao).getTime() - new Date(a.dataInscricao).getTime()
+        const ordenadas = candidaturasMapeadas.sort(
+          (a, b) =>
+            new Date(b.dataInscricao).getTime() -
+            new Date(a.dataInscricao).getTime(),
         );
 
         setCandidaturas(ordenadas);
-        sessionStorage.setItem('admin_applications', JSON.stringify(ordenadas));
+        sessionStorage.setItem("admin_applications", JSON.stringify(ordenadas));
       } catch (err: any) {
         setError(err.message);
         console.error("Erro ao buscar candidaturas:", err);
@@ -99,36 +117,41 @@ export default function AdminApplications() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Deseja remover esta candidatura permanentemente?")) return;
+    if (!window.confirm("Deseja remover esta candidatura permanentemente?"))
+      return;
 
     try {
       const token = localStorage.getItem("user_token");
-      const response = await fetch(`import.meta.env.VITE_API_URL/api/v1/job-applications/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/job-applications/${id}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
 
       if (response.ok) {
-        setCandidaturas(prev => prev.filter(c => c.id !== id));
+        setCandidaturas((prev) => prev.filter((c) => c.id !== id));
         if (expandedId === id) setExpandedId(null);
       } else {
-        alert('Erro ao excluir candidatura');
+        alert("Erro ao excluir candidatura");
       }
     } catch (err) {
-      alert('Erro ao excluir candidatura');
+      alert("Erro ao excluir candidatura");
     }
   };
 
   return (
     <div className="p-8">
       <div className="max-w-7xl mx-auto">
-        
         <header className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
           <div>
             <span className="text-teal-600 font-black text-[10px] uppercase tracking-[0.3em] flex items-center gap-2 mb-1 whitespace-nowrap">
               <ShieldCheck size={13} /> Sistema de Gestão Administrativo
             </span>
-            <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">Administrativo</h1>
+            <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">
+              Administrativo
+            </h1>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <Link
@@ -138,42 +161,46 @@ export default function AdminApplications() {
               <Plus size={16} strokeWidth={3} /> Nova Vaga
             </Link>
             <div className="bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
-              <span className="text-slate-500 text-xs font-bold uppercase">Inscrições: </span>
-              <span className="text-teal-600 font-black text-lg">{candidaturas.length}</span>
+              <span className="text-slate-500 text-xs font-bold uppercase">
+                Inscrições:{" "}
+              </span>
+              <span className="text-teal-600 font-black text-lg">
+                {candidaturas.length}
+              </span>
             </div>
           </div>
         </header>
 
         {/* --- NOVO SISTEMA DE ABAS --- */}
         <div className="flex flex-wrap gap-8 border-b border-slate-200 mb-10">
-          <Link 
-            to="/admin/vagas" 
+          <Link
+            to="/admin/vagas"
             className={`pb-4 text-[11px] font-black tracking-[0.2em] transition-all flex items-center gap-2 ${
-              location.pathname === '/admin/vagas' 
-              ? 'border-b-4 border-teal-500 text-teal-600' 
-              : 'text-slate-400 hover:text-slate-600'
+              location.pathname === "/admin/vagas"
+                ? "border-b-4 border-teal-500 text-teal-600"
+                : "text-slate-400 hover:text-slate-600"
             }`}
           >
             <Briefcase size={14} />
             VAGAS
           </Link>
-          <Link 
-            to="/admin/candidaturas" 
+          <Link
+            to="/admin/candidaturas"
             className={`pb-4 text-[11px] font-black tracking-[0.2em] transition-all flex items-center gap-2 ${
-              location.pathname === '/admin/candidaturas' 
-              ? 'border-b-4 border-teal-500 text-teal-600' 
-              : 'text-slate-400 hover:text-slate-600'
+              location.pathname === "/admin/candidaturas"
+                ? "border-b-4 border-teal-500 text-teal-600"
+                : "text-slate-400 hover:text-slate-600"
             }`}
           >
             <FileText size={14} />
             CANDIDATURAS
           </Link>
-          <Link 
-            to="/admin/usuarios" 
+          <Link
+            to="/admin/usuarios"
             className={`pb-4 text-[11px] font-black tracking-[0.2em] transition-all flex items-center gap-2 ${
-              location.pathname === '/admin/usuarios' 
-              ? 'border-b-4 border-teal-500 text-teal-600' 
-              : 'text-slate-400 hover:text-slate-600'
+              location.pathname === "/admin/usuarios"
+                ? "border-b-4 border-teal-500 text-teal-600"
+                : "text-slate-400 hover:text-slate-600"
             }`}
           >
             <Users size={14} />
@@ -189,16 +216,20 @@ export default function AdminApplications() {
 
         {loading ? (
           <div className="bg-white rounded-3xl p-20 text-center border-2 border-dashed border-slate-200">
-            <p className="text-slate-400 font-medium italic">Carregando candidaturas...</p>
+            <p className="text-slate-400 font-medium italic">
+              Carregando candidaturas...
+            </p>
           </div>
         ) : candidaturas.length === 0 ? (
           <div className="bg-white rounded-3xl p-20 text-center border-2 border-dashed border-slate-200">
-            <p className="text-slate-400 font-medium italic">Nenhuma candidatura registrada no momento.</p>
+            <p className="text-slate-400 font-medium italic">
+              Nenhuma candidatura registrada no momento.
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
             {candidaturas.map((c, index) => (
-              <motion.div 
+              <motion.div
                 key={c.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -212,23 +243,33 @@ export default function AdminApplications() {
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1">
                         <User size={12} /> Candidato
                       </span>
-                      <span className="text-slate-800 font-bold leading-tight">{c.nome}</span>
-                      <span className="text-slate-500 text-xs truncate">{c.email}</span>
+                      <span className="text-slate-800 font-bold leading-tight">
+                        {c.nome}
+                      </span>
+                      <span className="text-slate-500 text-xs truncate">
+                        {c.email}
+                      </span>
                     </div>
 
                     <div className="flex flex-col">
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1">
                         <Briefcase size={12} /> Vaga / Formação
                       </span>
-                      <span className="text-teal-600 font-black uppercase text-[11px] tracking-tight">{c.vagaTitulo}</span>
-                      <span className="text-slate-500 text-[10px] font-medium uppercase">{c.formacao}</span>
+                      <span className="text-teal-600 font-black uppercase text-[11px] tracking-tight">
+                        {c.vagaTitulo}
+                      </span>
+                      <span className="text-slate-500 text-[10px] font-medium uppercase">
+                        {c.formacao}
+                      </span>
                     </div>
 
                     <div className="flex flex-col">
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1">
                         <Clock size={12} /> Turno
                       </span>
-                      <span className="text-slate-700 font-bold capitalize text-sm">{c.turno}</span>
+                      <span className="text-slate-700 font-bold capitalize text-sm">
+                        {c.turno}
+                      </span>
                     </div>
 
                     <div className="flex flex-col">
@@ -236,26 +277,30 @@ export default function AdminApplications() {
                         <Calendar size={12} /> Data
                       </span>
                       <span className="text-slate-700 font-semibold text-sm">
-                        {new Date(c.dataInscricao).toLocaleDateString('pt-BR')}
+                        {new Date(c.dataInscricao).toLocaleDateString("pt-BR")}
                       </span>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3 border-l border-slate-100 pl-6">
-                    <button 
+                    <button
                       onClick={() => toggleExpand(c.id)}
                       className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all cursor-pointer ${
-                        expandedId === c.id 
-                        ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/30' 
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        expandedId === c.id
+                          ? "bg-teal-500 text-white shadow-lg shadow-teal-500/30"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                       }`}
                     >
                       <FileText size={14} />
-                      {expandedId === c.id ? 'Fechar' : 'Experiência'}
-                      {expandedId === c.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      {expandedId === c.id ? "Fechar" : "Experiência"}
+                      {expandedId === c.id ? (
+                        <ChevronUp size={14} />
+                      ) : (
+                        <ChevronDown size={14} />
+                      )}
                     </button>
 
-                    <button 
+                    <button
                       onClick={() => handleDelete(c.id)}
                       className="bg-red-50 text-red-400 p-2.5 rounded-xl hover:bg-red-500 hover:text-white transition-all cursor-pointer group"
                     >
@@ -266,9 +311,9 @@ export default function AdminApplications() {
 
                 <AnimatePresence>
                   {expandedId === c.id && (
-                    <motion.div 
+                    <motion.div
                       initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
+                      animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.3, ease: "easeInOut" }}
                       className="bg-slate-50 border-t border-slate-100"
@@ -280,21 +325,32 @@ export default function AdminApplications() {
                           </div>
                           <div className="space-y-4 flex-1">
                             <div>
-                              <h4 className="text-[10px] font-black text-teal-600 uppercase tracking-[0.2em] mb-1">Trajetória Profissional</h4>
+                              <h4 className="text-[10px] font-black text-teal-600 uppercase tracking-[0.2em] mb-1">
+                                Trajetória Profissional
+                              </h4>
                               <p className="text-slate-700 leading-relaxed text-sm whitespace-pre-line font-medium bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                                {c.experiencia || "Nenhuma experiência detalhada."}
+                                {c.experiencia ||
+                                  "Nenhuma experiência detalhada."}
                               </p>
                             </div>
-                            
+
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-white p-4 rounded-xl border border-slate-200">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">Área Específica</span>
-                                    <span className="text-slate-800 font-bold text-xs">{c.area || 'N/A'}</span>
-                                </div>
-                                <div className="bg-white p-4 rounded-xl border border-slate-200">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">Contato Direto</span>
-                                    <span className="text-slate-800 font-bold text-xs">{c.telefone}</span>
-                                </div>
+                              <div className="bg-white p-4 rounded-xl border border-slate-200">
+                                <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">
+                                  Área Específica
+                                </span>
+                                <span className="text-slate-800 font-bold text-xs">
+                                  {c.area || "N/A"}
+                                </span>
+                              </div>
+                              <div className="bg-white p-4 rounded-xl border border-slate-200">
+                                <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">
+                                  Contato Direto
+                                </span>
+                                <span className="text-slate-800 font-bold text-xs">
+                                  {c.telefone}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>

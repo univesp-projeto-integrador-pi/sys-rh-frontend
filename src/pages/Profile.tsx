@@ -10,7 +10,7 @@ export function Profile() {
       try {
         const token = localStorage.getItem("user_token");
         const response = await fetch(
-          "import.meta.env.VITE_API_URL/api/v1/candidates-external/me",
+          `${import.meta.env.VITE_API_URL}/candidates-external`,
           {
             headers: { Authorization: `Bearer ${token}` },
           },
