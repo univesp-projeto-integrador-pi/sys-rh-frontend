@@ -25,7 +25,7 @@ export function ApplicationForm() {
 
       try {
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/candidates-external/me`,
+          `${import.meta.env.VITE_API_URL}/candidates-external`,
           {
             headers: { Authorization: `Bearer ${token}` },
           },
