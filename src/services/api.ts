@@ -10,7 +10,7 @@ const api = axios.create({
 });
 
 // --- Rotas de Candidato (External) ---
-export const getMyProfile = () => api.get("/candidates-external/me");
+export const getMyProfile = () => api.get("/candidates-external");
 export const createCandidate = (data: any) =>
   api.post("/candidates-external", data);
 export const updateCandidate = (id: string, data: any) =>
